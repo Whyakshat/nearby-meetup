@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 
 const AppContext = createContext();
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://nearby-meetup.onrender.com/api';
 
 export const AppProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
