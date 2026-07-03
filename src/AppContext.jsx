@@ -86,12 +86,12 @@ export const AppProvider = ({ children }) => {
     }
   }, [currentUser]);
 
-  const signup = async (email, password) => {
+  const signup = async (email, password, gender) => {
     try {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name: email.split('@')[0] })
+        body: JSON.stringify({ email, password, name: email.split('@')[0], gender })
       });
       const data = await res.json();
       if (res.ok) {

@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name, bio, interests, avatar } = req.body;
+    const { email, password, name, bio, interests, avatar, gender } = req.body;
     
     // Check if user exists
     let user = await prisma.user.findUnique({ where: { email } });
@@ -26,6 +26,7 @@ router.post('/register', async (req, res) => {
         bio: bio || '',
         interests: JSON.stringify(interests || []),
         avatar: avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150',
+        gender: gender || null,
         blockedUsers: JSON.stringify([])
       }
     });
@@ -37,7 +38,7 @@ router.post('/register', async (req, res) => {
     user.interests = JSON.parse(user.interests);
     user.blockedUsers = JSON.parse(user.blockedUsers);
 
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name, bio: user.bio, interests: user.interests, avatar: user.avatar, isPrivate: user.isPrivate, blockedUsers: user.blockedUsers } });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, bio: user.bio, interests: user.interests, avatar: user.avatar, gender: user.gender, isPrivate: user.isPrivate, blockedUsers: user.blockedUsers } });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -64,7 +65,7 @@ router.post('/login', async (req, res) => {
     user.interests = JSON.parse(user.interests);
     user.blockedUsers = JSON.parse(user.blockedUsers);
 
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name, bio: user.bio, interests: user.interests, avatar: user.avatar, isPrivate: user.isPrivate, blockedUsers: user.blockedUsers } });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, bio: user.bio, interests: user.interests, avatar: user.avatar, gender: user.gender, isPrivate: user.isPrivate, blockedUsers: user.blockedUsers } });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

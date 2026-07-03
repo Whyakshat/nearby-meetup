@@ -139,7 +139,7 @@ const Chat = () => {
       <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '100px' }}>
         {chatMessages.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '2rem' }}>
-            <p>Say hi to {otherUser.name.split(' ')[0]}!</p>
+            <p>Say hi to {otherUser?.name?.split(' ')[0] || 'Unknown'}!</p>
           </div>
         ) : (
           chatMessages.map(msg => {

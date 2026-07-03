@@ -9,6 +9,7 @@ const Signup = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [gender, setGender] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
@@ -19,8 +20,12 @@ const Signup = () => {
       setError('Password must be at least 6 characters');
       return;
     }
+    if (!gender) {
+      setError('Please select a gender');
+      return;
+    }
     
-    const result = signup(email, password);
+    const result = signup(email, password, gender);
     if (result.success) {
       navigate('/dashboard', { replace: true });
     } else {
@@ -65,6 +70,22 @@ const Signup = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+          </div>
+
+          <div className="input-group">
+            <label>Gender</label>
+            <select 
+              className="input-field"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              required
+              style={{ appearance: 'none' }}
+            >
+              <option value="" disabled>Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
           </div>
 
           {error && <p style={{ color: 'var(--danger-color)', fontSize: '0.85rem', marginTop: '0.5rem' }}>{error}</p>}

@@ -14,6 +14,7 @@ model User {
   avatar       String?
   bio          String?
   interests    String   // stored as JSON string
+  gender       String?
   isPrivate    Boolean  @default(false)
   blockedUsers String   // stored as JSON string of user IDs
   createdAt    DateTime @default(now())

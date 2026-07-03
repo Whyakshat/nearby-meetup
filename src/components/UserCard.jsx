@@ -48,7 +48,7 @@ const UserCard = ({ user, onOpenPosts }) => {
           <img src={user.avatar} style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.5)', objectFit: 'cover' }} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'white' }}>
-              {user.name.split(' ')[0]} <CheckCircle2 size={12} color="#3498db" fill="white" />
+              {user?.name?.split(' ')[0] || 'Unknown'} <CheckCircle2 size={12} color="#3498db" fill="white" />
             </span>
             <span style={{ fontSize: '0.7rem', opacity: 0.9, color: 'white' }}>{user.bio ? user.bio.substring(0, 20) + '...' : 'New here'}</span>
           </div>

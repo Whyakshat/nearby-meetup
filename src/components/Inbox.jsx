@@ -100,13 +100,13 @@ const Inbox = () => {
                   fontWeight: (msg.status === 'pending' && msg.isReceived) ? 600 : 400
                 }}>
                   {msg.isReceived ? (
-                    msg.status === 'pending' ? `${msg.otherUser.name.split(' ')[0]} sent you a request: ${msg.activity}` :
-                    msg.status === 'accepted' ? `You accepted ${msg.otherUser.name.split(' ')[0]}'s request.` :
-                    `You declined ${msg.otherUser.name.split(' ')[0]}'s request.`
+                    msg.status === 'pending' ? `${msg.otherUser?.name?.split(' ')[0] || 'Someone'} sent you a request: ${msg.activity}` :
+                    msg.status === 'accepted' ? `You accepted ${msg.otherUser?.name?.split(' ')[0] || 'Someone'}'s request.` :
+                    `You declined ${msg.otherUser?.name?.split(' ')[0] || 'Someone'}'s request.`
                   ) : (
                     msg.status === 'pending' ? `You requested: ${msg.activity}` :
-                    msg.status === 'accepted' ? `${msg.otherUser.name.split(' ')[0]} accepted your request!` :
-                    `${msg.otherUser.name.split(' ')[0]} declined your request.`
+                    msg.status === 'accepted' ? `${msg.otherUser?.name?.split(' ')[0] || 'Someone'} accepted your request!` :
+                    `${msg.otherUser?.name?.split(' ')[0] || 'Someone'} declined your request.`
                   )}
                 </p>
 

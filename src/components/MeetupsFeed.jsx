@@ -114,7 +114,7 @@ const MeetupCard = ({ meetup }) => {
             onClick={() => navigate(`/profile/${author.id}`)}
             style={{ margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}
           >
-            {author.name.split(' ')[0]} <CheckCircle2 size={12} color="#3498db" />
+            {author?.name?.split(' ')[0] || 'Unknown'} <CheckCircle2 size={12} color="#3498db" />
           </h4>
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <Calendar size={12} /> {new Date(meetup.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

@@ -200,7 +200,8 @@ const Profile = () => {
         </div>
 
         <h2 style={{ marginBottom: '0.25rem' }}>{profileUser.name}</h2>
-        <p style={{ color: 'var(--text-secondary)' }}>{profileUser.email}</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{profileUser.email}</p>
+        {profileUser.gender && <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{profileUser.gender}</p>}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
