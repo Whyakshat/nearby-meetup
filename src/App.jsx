@@ -13,6 +13,7 @@ import Notifications from './components/Notifications';
 import { RequireAuth } from './components/RequireAuth';
 import { RequireLocation } from './components/RequireLocation';
 import SplashScreen from './components/SplashScreen';
+import CreatePostModal from './components/CreatePostModal';
 import { AnimatePresence } from 'framer-motion';
 
 const BottomNav = () => {
@@ -24,6 +25,7 @@ const BottomNav = () => {
   // Don't show bottom nav on auth or landing pages
   if (['/', '/login', '/signup'].includes(location.pathname)) return null;
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const unreadRequests = requests.filter(r => r.to?.id === currentUser.id && r.status === 'pending').length;
 
   return (
@@ -62,6 +64,12 @@ const BottomNav = () => {
         )}
       </NavLink>
       
+      <button className="nav-item" style={{ marginTop: '-15px' }} onClick={() => setShowCreateModal(true)}>
+        <div style={{ background: 'var(--accent-gradient)', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 20px rgba(255, 118, 117, 0.4)', border: '4px solid var(--surface-color)' }}>
+           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </div>
+      </button>
+      
       <NavLink to="/profile" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
         {({ isActive }) => (
           <>
@@ -70,6 +78,10 @@ const BottomNav = () => {
           </>
         )}
       </NavLink>
+
+      <AnimatePresence>
+        {showCreateModal && <CreatePostModal onClose={() => setShowCreateModal(false)} />}
+      </AnimatePresence>
     </nav>
   );
 };

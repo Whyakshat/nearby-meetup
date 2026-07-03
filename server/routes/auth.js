@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
         name,
         bio: bio || '',
         interests: JSON.stringify(interests || []),
-        avatar: avatar || '/default-avatar.png',
+        avatar: avatar || '/default-avatar.svg',
         gender: gender || null,
         blockedUsers: JSON.stringify([])
       }

@@ -2,8 +2,8 @@
 
 :root[data-theme="light"], :root {
   --bg-image: radial-gradient(ellipse at 50% 120%, #c86a3d 0%, #e2b49c 40%, #f8f6f5 100%);
-  --surface-color: rgba(255, 255, 255, 0.15);
-  --surface-border: rgba(255, 255, 255, 0.3);
+  --surface-color: rgba(255, 255, 255, 0.6);
+  --surface-border: rgba(255, 255, 255, 0.8);
   --primary-color: #333333;
   --text-primary: #1a1a1a;
   --text-secondary: rgba(0, 0, 0, 0.6);
@@ -16,8 +16,8 @@
 
 :root[data-theme="dark"] {
   --bg-image: radial-gradient(ellipse at 50% 120%, #8a4124 0%, #a27258 40%, #2a221f 100%);
-  --surface-color: rgba(0, 0, 0, 0.25);
-  --surface-border: rgba(255, 255, 255, 0.15);
+  --surface-color: rgba(0, 0, 0, 0.4);
+  --surface-border: rgba(255, 255, 255, 0.1);
   --primary-color: #ffffff;
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.6);
@@ -82,6 +82,8 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid var(--surface-border);
   border-radius: var(--border-radius);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
 }
 
 .panel {
@@ -89,6 +91,8 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid var(--surface-border);
   border-radius: var(--border-radius);
   padding: 1.5rem;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
 }
 
 /* Buttons */
@@ -155,12 +159,12 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid var(--surface-border);
   display: flex;
   justify-content: space-around;
-  padding: 1rem 0;
+  padding: 0.85rem 0;
   border-radius: 999px;
   z-index: 1000;
   box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
 }
 
 .nav-item {
