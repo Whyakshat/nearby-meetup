@@ -79,8 +79,8 @@ h1, h2, h3, h4, h5, h6 {
 /* Extreme Glassmorphism */
 .glass-panel {
   background: var(--surface-color);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--surface-border);
   border-radius: var(--border-radius);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -88,8 +88,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .panel {
   background: var(--surface-color);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--surface-border);
   border-radius: var(--border-radius);
   padding: 1.5rem;
@@ -128,8 +128,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-glass {
   background: var(--surface-color);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--surface-border);
   color: var(--text-primary);
 }
@@ -158,8 +158,8 @@ h1, h2, h3, h4, h5, h6 {
   width: calc(100% - 48px);
   max-width: 400px;
   background: var(--surface-color);
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--surface-border);
   display: flex;
   justify-content: space-around;
@@ -263,8 +263,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .tag-pill {
   background: var(--surface-color);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--surface-border);
   padding: 0.4rem 1rem;
   border-radius: 999px;

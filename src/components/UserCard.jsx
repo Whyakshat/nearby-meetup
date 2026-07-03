@@ -37,7 +37,7 @@ const UserCard = ({ user, onOpenPosts }) => {
         alt={user.name} 
         className="full-card-bg" 
         style={{ 
-          filter: isLocked || !userPosts.find(p => p.image) ? 'blur(20px) brightness(0.7)' : 'brightness(0.9)',
+          filter: isLocked || !userPosts.find(p => p.image) ? 'blur(8px) brightness(0.7)' : 'brightness(0.9)',
           transform: 'scale(1.1)' // prevent blurred edges from showing
         }} 
       />
@@ -84,7 +84,7 @@ const UserCard = ({ user, onOpenPosts }) => {
       )}
 
       {/* Bottom Glass Action Bar */}
-      <div className="glass-action-bar" style={{ padding: '0.5rem', display: 'flex', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={(e) => e.stopPropagation()}>
+      <div className="glass-action-bar" style={{ padding: '0.5rem', display: 'flex', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSendRequest} style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
           <input 
             type="text" 
