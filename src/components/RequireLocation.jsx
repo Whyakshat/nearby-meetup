@@ -3,7 +3,7 @@ import { useAppContext } from '../AppContext';
 import { MapPinOff, Loader } from 'lucide-react';
 
 export const RequireLocation = ({ children }) => {
-  const { location, locationError } = useAppContext();
+  const { location, locationError, fetchLocation } = useAppContext();
 
   if (locationError) {
     return (
@@ -22,6 +22,9 @@ export const RequireLocation = ({ children }) => {
           {locationError}
         </p>
         <p style={{ fontSize: '0.85rem' }}>Please enable location access in your browser settings and refresh the page.</p>
+        <button onClick={fetchLocation} className="btn btn-accent" style={{ marginTop: '1.5rem', padding: '0.6rem 2rem' }}>
+          Retry
+        </button>
       </div>
     );
   }

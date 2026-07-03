@@ -69,22 +69,27 @@ export const AppProvider = ({ children }) => {
     }
   }, [token, authFetch]);
 
-  // Fetch Location
+  const fetchLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation not supported");
+      return;
+    }
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setLocationError(null);
+      },
+      () => setLocationError("Location access denied")
+    );
+  }, []);
+
+  // Fetch Location on load
   useEffect(() => {
     if (currentUser) {
-      if (!navigator.geolocation) {
-        setLocationError("Geolocation not supported");
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
-          setLocationError(null);
-        },
-        () => setLocationError("Location access denied")
-      );
+      fetchLocation();
     }
-  }, [currentUser]);
+  }, [currentUser, fetchLocation]);
 
   const signup = async (email, password, gender) => {
     try {
@@ -310,6 +315,7 @@ export const AppProvider = ({ children }) => {
       registeredUsers,
       location,
       locationError,
+      fetchLocation,
       signup,
       login,
       logout,

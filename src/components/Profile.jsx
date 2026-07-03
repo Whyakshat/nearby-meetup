@@ -10,7 +10,7 @@ const INTEREST_OPTIONS = ['Coffee', 'Design', 'Music', 'Gaming', 'Food', 'Movies
 const Profile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { currentUser, registeredUsers, updateProfile, posts, createPost, deletePost, archivePost } = useAppContext();
+  const { currentUser, registeredUsers, updateProfile, posts, createPost, deletePost, archivePost, logout } = useAppContext();
   
   const isPublicView = id && id !== currentUser.id;
   const profileUser = isPublicView ? registeredUsers.find(u => u.id === id) : currentUser;
@@ -388,6 +388,26 @@ const Profile = () => {
           <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No posts yet.</p>
         )}
       </div>
+
+      {!isPublicView && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+          <button 
+            className="btn btn-secondary" 
+            onClick={logout}
+            style={{ 
+              width: '100%', 
+              maxWidth: '300px', 
+              color: 'var(--danger-color)', 
+              borderColor: 'rgba(255, 71, 87, 0.3)', 
+              background: 'rgba(255, 71, 87, 0.05)', 
+              padding: '0.8rem',
+              fontWeight: 600
+            }}
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
 
       <AnimatePresence>
         {showSettings && (
