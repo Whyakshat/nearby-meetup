@@ -65,8 +65,8 @@ const BottomNav = () => {
       </NavLink>
       
       <button className="nav-item" style={{ marginTop: '-15px' }} onClick={() => setShowCreateModal(true)}>
-        <div style={{ background: 'var(--accent-gradient)', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 20px rgba(255, 118, 117, 0.4)', border: '4px solid var(--surface-color)' }}>
-           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <div style={{ background: 'var(--surface-color)', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', boxShadow: '0 8px 25px rgba(0, 0, 0, 0.2)', border: '1px solid var(--surface-border)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}>
+           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </div>
       </button>
       
