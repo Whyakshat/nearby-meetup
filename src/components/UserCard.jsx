@@ -57,13 +57,12 @@ const UserCard = ({ user, onOpenPosts }) => {
         <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
           <button 
             onClick={() => setShowOptions(!showOptions)}
-            style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)', border: 'none', color: 'white', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
+            style={{ background: 'rgba(255,255,255,0.85)', border: 'none', color: '#000', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <MoreHorizontal size={18} />
           </button>
           
           {showOptions && (
-            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(20px)', borderRadius: '12px', overflow: 'hidden', minWidth: '150px' }}>
+            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', background: 'rgba(0,0,0,0.95)', borderRadius: '12px', overflow: 'hidden', minWidth: '150px' }}>
               <button 
                 onClick={() => { blockUser(user.id); setShowOptions(false); }}
                 style={{ width: '100%', padding: '1rem', background: 'none', border: 'none', color: '#ff4757', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}
@@ -84,7 +83,7 @@ const UserCard = ({ user, onOpenPosts }) => {
       )}
 
       {/* Bottom Glass Action Bar */}
-      <div className="glass-action-bar" style={{ padding: '0.5rem', display: 'flex', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={(e) => e.stopPropagation()}>
+      <div className="glass-action-bar" style={{ padding: '0.5rem', display: 'flex', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.85)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSendRequest} style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
           <input 
             type="text" 

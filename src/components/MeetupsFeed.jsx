@@ -18,7 +18,7 @@ const NewMeetupModal = ({ onClose }) => {
   };
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', zIndex: 99999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 99999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <motion.div 
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
@@ -187,15 +187,10 @@ const MeetupsFeed = () => {
             <p>Be the first to create one!</p>
           </motion.div>
         ) : (
-          openMeetups.map((meetup, index) => (
-            <motion.div 
-              key={meetup.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
+          openMeetups.map((meetup) => (
+            <div key={meetup.id} style={{ marginBottom: '1rem' }}>
               <MeetupCard meetup={meetup} />
-            </motion.div>
+            </div>
           ))
         )}
       </AnimatePresence>

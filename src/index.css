@@ -78,18 +78,14 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Extreme Glassmorphism */
 .glass-panel {
-  background: var(--surface-color);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--surface-border);
   border-radius: var(--border-radius);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
 .panel {
-  background: var(--surface-color);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--surface-border);
   border-radius: var(--border-radius);
   padding: 1.5rem;
@@ -127,9 +123,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-glass {
-  background: var(--surface-color);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--surface-border);
   color: var(--text-primary);
 }
@@ -157,9 +151,7 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateX(-50%);
   width: calc(100% - 48px);
   max-width: 400px;
-  background: var(--surface-color);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--surface-border);
   display: flex;
   justify-content: space-around;
@@ -262,9 +254,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .tag-pill {
-  background: var(--surface-color);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.85);
   border: 1px solid var(--surface-border);
   padding: 0.4rem 1rem;
   border-radius: 999px;

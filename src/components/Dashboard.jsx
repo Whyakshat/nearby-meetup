@@ -57,7 +57,7 @@ const Dashboard = () => {
   return (
     <div style={{ paddingTop: '1rem', paddingBottom: '120px' }}>
       {/* Top Search Bar */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '1rem', background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '1rem', background: 'rgba(255, 255, 255, 0.95)' }}>
         {/* Main Feed Toggle */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', background: 'rgba(0,0,0,0.2)', padding: '0.25rem', borderRadius: '12px' }}>
           <button 
@@ -172,15 +172,10 @@ const Dashboard = () => {
                 <p>Try adjusting your search or filters.</p>
               </motion.div>
             ) : (
-              filteredUsers.map((user, index) => (
-                <motion.div 
-                  key={user.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
+              filteredUsers.map((user) => (
+                <div key={user.id} style={{ marginBottom: '1rem' }}>
                   <UserCard user={user} onOpenPosts={setSelectedUserForPosts} />
-                </motion.div>
+                </div>
               ))
             )}
           </AnimatePresence>
@@ -189,7 +184,7 @@ const Dashboard = () => {
 
       {/* Lifted Modal for viewing Posts */}
       {selectedUserForPosts && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', zIndex: 99999, overflowY: 'auto', padding: '1rem', paddingBottom: '120px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255,255,255,0.95)', zIndex: 99999, overflowY: 'auto', padding: '1rem', paddingBottom: '120px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', padding: '1rem', background: 'var(--surface-color)', borderRadius: '24px', border: '1px solid var(--surface-border)' }}>
             <h2 style={{ margin: 0 }}>{selectedUserForPosts.name}'s Profile</h2>
             <button onClick={() => setSelectedUserForPosts(null)} className="btn btn-glass" style={{ color: 'var(--text-primary)', border: '1px solid var(--surface-border)', padding: '0.5rem 1rem' }}>Close</button>
