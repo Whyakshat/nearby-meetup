@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
         name,
         bio: bio || '',
         interests: JSON.stringify(interests || []),
-        avatar: avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150',
+        avatar: avatar || '/default-avatar.png',
         gender: gender || null,
         blockedUsers: JSON.stringify([])
       }

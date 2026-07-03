@@ -25,7 +25,7 @@ const Inbox = () => {
         otherUser
       };
     })
-    .sort((a, b) => parseInt(b.id) - parseInt(a.id)); // Assuming ID is timestamp-based for sorting
+    .sort((a, b) => new Date(b.createdAt || Date.now()) - new Date(a.createdAt || Date.now()));
 
   return (
     <div style={{ padding: '0', paddingTop: '1rem', paddingBottom: '120px', minHeight: '100vh', background: 'var(--bg-color)' }}>
@@ -86,7 +86,7 @@ const Inbox = () => {
                     {msg.otherUser.name}
                   </h3>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', flexShrink: 0 }}>
-                    {new Date(parseInt(msg.id)).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    {new Date(msg.createdAt || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
                 
