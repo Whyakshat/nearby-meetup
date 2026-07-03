@@ -14,6 +14,10 @@ router.get('/', auth, async (req, res) => {
           { toId: req.user.id }
         ]
       },
+      include: {
+        from: { select: { id: true, name: true, avatar: true, bio: true } },
+        to: { select: { id: true, name: true, avatar: true, bio: true } }
+      },
       orderBy: { createdAt: 'desc' }
     });
     res.json(requests);
@@ -46,6 +50,10 @@ router.post('/', auth, async (req, res) => {
         fromId: req.user.id,
         toId,
         activity
+      },
+      include: {
+        from: { select: { id: true, name: true, avatar: true, bio: true } },
+        to: { select: { id: true, name: true, avatar: true, bio: true } }
       }
     });
     res.json(request);
@@ -61,7 +69,11 @@ router.put('/:id', auth, async (req, res) => {
     const { status } = req.body;
     const request = await prisma.request.update({
       where: { id: req.params.id },
-      data: { status }
+      data: { status },
+      include: {
+        from: { select: { id: true, name: true, avatar: true, bio: true } },
+        to: { select: { id: true, name: true, avatar: true, bio: true } }
+      }
     });
     res.json(request);
   } catch (err) {

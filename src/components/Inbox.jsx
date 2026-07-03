@@ -15,10 +15,10 @@ const Inbox = () => {
 
   // Combine and format all requests (sent and received)
   const unifiedMessages = requests
-    .filter(r => r.to.id === currentUser.id || r.from.id === currentUser.id)
+    .filter(r => r.to?.id === currentUser.id || r.from?.id === currentUser.id)
     .map(req => {
-      const isReceived = req.to.id === currentUser.id;
-      const otherUser = getFreshUser(isReceived ? req.from.id : req.to.id);
+      const isReceived = req.to?.id === currentUser.id;
+      const otherUser = getFreshUser(isReceived ? req.from?.id : req.to?.id);
       return {
         ...req,
         isReceived,

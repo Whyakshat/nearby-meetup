@@ -24,7 +24,7 @@ const BottomNav = () => {
   // Don't show bottom nav on auth or landing pages
   if (['/', '/login', '/signup'].includes(location.pathname)) return null;
 
-  const unreadRequests = requests.filter(r => r.to.id === currentUser.id && r.status === 'pending').length;
+  const unreadRequests = requests.filter(r => r.to?.id === currentUser.id && r.status === 'pending').length;
 
   return (
     <nav className="bottom-nav">
