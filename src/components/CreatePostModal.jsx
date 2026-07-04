@@ -72,7 +72,7 @@ const CreatePostModal = ({ onClose }) => {
     >
       <div 
         onClick={onClose} 
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
       ></div>
       
       <motion.div 
@@ -84,16 +84,17 @@ const CreatePostModal = ({ onClose }) => {
           width: '100%', 
           maxWidth: '500px', 
           background: 'var(--surface-color)', 
-          backdropFilter: 'blur(30px)', 
-          WebkitBackdropFilter: 'blur(30px)',
+          backdropFilter: 'blur(40px)', 
+          WebkitBackdropFilter: 'blur(40px)',
           borderTopLeftRadius: '32px',
           borderTopRightRadius: '32px',
           border: '1px solid var(--surface-border)',
           borderBottom: 'none',
           padding: '1.5rem',
+          paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))',
           position: 'relative',
           zIndex: 10001,
-          boxShadow: '0 -10px 40px rgba(0,0,0,0.2)'
+          boxShadow: '0 -20px 60px rgba(0,0,0,0.25)'
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>

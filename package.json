@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "start": "concurrently \"npm run dev\" \"cd server && nodemon index.js\"",
+    "start": "concurrently \"npm run dev\" \"cd server && npx nodemon index.js\"",
     "server": "cd server && node index.js"
   },
   "dependencies": {

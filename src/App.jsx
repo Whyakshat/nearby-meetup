@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useAppContext } from './AppContext';
-import { Navigation, Inbox as InboxIcon, User } from 'lucide-react';
+import { Navigation, Inbox as InboxIcon, User, PenSquare } from 'lucide-react';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Signup from './components/Signup';
@@ -15,17 +15,18 @@ import { RequireLocation } from './components/RequireLocation';
 import SplashScreen from './components/SplashScreen';
 import CreatePostModal from './components/CreatePostModal';
 import { AnimatePresence } from 'framer-motion';
+import { useEffect } from 'react';
 
 const BottomNav = () => {
   const { requests, currentUser } = useAppContext();
   const location = useLocation();
-  
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   if (!currentUser) return null;
   
   // Don't show bottom nav on auth or landing pages
   if (['/', '/login', '/signup'].includes(location.pathname)) return null;
 
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const unreadRequests = requests.filter(r => r.to?.id === currentUser.id && r.status === 'pending').length;
 
   return (
@@ -45,18 +46,7 @@ const BottomNav = () => {
             <InboxIcon strokeWidth={isActive ? 2.5 : 1.5} />
             <span>Inbox</span>
             {unreadRequests > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-2px',
-                right: '8px',
-                background: 'var(--danger-color)',
-                color: 'white',
-                fontSize: '0.65rem',
-                padding: '2px 5px',
-                borderRadius: '10px',
-                fontWeight: 'bold',
-                border: '2px solid white'
-              }}>
+              <span className="nav-badge">
                 {unreadRequests}
               </span>
             )}
@@ -64,10 +54,10 @@ const BottomNav = () => {
         )}
       </NavLink>
       
-      <button className="nav-item" style={{ marginTop: '-15px' }} onClick={() => setShowCreateModal(true)}>
-        <div style={{ background: 'var(--surface-color)', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', boxShadow: '0 8px 25px rgba(0, 0, 0, 0.2)', border: '1px solid var(--surface-border)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}>
-           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </div>
+      {/* Center Create Post Button */}
+      <button className={`nav-item ${showCreateModal ? 'active' : ''}`} onClick={() => setShowCreateModal(true)}>
+        <PenSquare size={22} strokeWidth={showCreateModal ? 2.5 : 1.5} />
+        <span>Post</span>
       </button>
       
       <NavLink to="/profile" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>

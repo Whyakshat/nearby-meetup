@@ -2,7 +2,9 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 
 const AppContext = createContext();
 
-const API_URL = 'https://nearby-meetup.onrender.com/api';
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5001/api'
+  : 'https://nearby-meetup.onrender.com/api';
 
 export const AppProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -21,13 +23,15 @@ export const AppProvider = ({ children }) => {
   const [meetups, setMeetups] = useState([]);
   const [broadcasts, setBroadcasts] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState(() => localStorage.getItem('heyo_theme') || 'light');
   
   const [location, setLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
+  const [cityName, setCityName] = useState('');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('heyo_theme', theme);
   }, [theme]);
 
   const authFetch = useCallback(async (endpoint, options = {}) => {
@@ -61,13 +65,35 @@ export const AppProvider = ({ children }) => {
         if(msgsData) setMessages(msgsData);
       }).catch(err => {
         console.error('Failed to fetch initial data:', err);
-        // Token might be invalid, logout
         if(err.message === 'API Request Failed') {
           logout();
         }
       });
     }
   }, [token, authFetch]);
+
+  // Reverse geocode lat/lng to get city name
+  const reverseGeocode = useCallback(async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`,
+        { headers: { 'Accept-Language': 'en', 'User-Agent': 'HeyoApp/1.0' } }
+      );
+      const data = await res.json();
+      const city =
+        data.address?.city ||
+        data.address?.town ||
+        data.address?.village ||
+        data.address?.county ||
+        data.address?.state ||
+        '';
+      const country = data.address?.country_code?.toUpperCase() || '';
+      setCityName(city ? `${city}${country ? ', ' + country : ''}` : '');
+    } catch (e) {
+      console.warn('Reverse geocoding failed:', e);
+      setCityName('');
+    }
+  }, []);
 
   const fetchLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -77,12 +103,16 @@ export const AppProvider = ({ children }) => {
     setLocationError(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setLocation({ lat, lng });
         setLocationError(null);
+        reverseGeocode(lat, lng);
       },
-      () => setLocationError("Location access denied")
+      () => setLocationError("Location access denied"),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
     );
-  }, []);
+  }, [reverseGeocode]);
 
   // Fetch Location on load
   useEffect(() => {
@@ -91,12 +121,13 @@ export const AppProvider = ({ children }) => {
     }
   }, [currentUser, fetchLocation]);
 
-  const signup = async (email, password, gender) => {
+  const signup = async (email, password, gender, name) => {
     try {
+      const displayName = name || email.split('@')[0];
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name: email.split('@')[0], gender })
+        body: JSON.stringify({ email, password, name: displayName, gender })
       });
       const data = await res.json();
       if (res.ok) {
@@ -108,7 +139,7 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: data.message };
     } catch (error) {
-      return { success: false, message: 'Server error' };
+      return { success: false, message: 'Server error. Please try again.' };
     }
   };
 
@@ -129,13 +160,15 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: data.message };
     } catch (error) {
-      return { success: false, message: 'Server error' };
+      return { success: false, message: 'Server error. Please try again.' };
     }
   };
 
   const logout = () => {
     setCurrentUser(null);
     setToken(null);
+    setLocation(null);
+    setCityName('');
     localStorage.removeItem('vibecheck_token');
     localStorage.removeItem('vibecheck_user');
   };
@@ -277,7 +310,6 @@ export const AppProvider = ({ children }) => {
     } catch (err) { }
   };
 
-  // Note: Broadcasts are still local mock for now as they require WebSockets for real-time
   const sendBroadcast = (message) => {
     const newBroadcast = {
       id: Date.now().toString(),
@@ -316,6 +348,7 @@ export const AppProvider = ({ children }) => {
       location,
       locationError,
       fetchLocation,
+      cityName,
       signup,
       login,
       logout,

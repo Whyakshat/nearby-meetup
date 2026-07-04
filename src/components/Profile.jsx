@@ -1,38 +1,63 @@
 import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
-import { Settings as SettingsIcon, Edit2, Camera, Image as ImageIcon, Trash2, Archive, ArrowLeft } from 'lucide-react';
+import { 
+  Settings as SettingsIcon, 
+  Edit2, 
+  Camera, 
+  Trash2, 
+  Archive, 
+  ArrowLeft, 
+  Grid, 
+  MessageCircle, 
+  UserPlus, 
+  UserCheck, 
+  Clock, 
+  LogOut,
+  X
+} from 'lucide-react';
 import Settings from './Settings';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const INTEREST_OPTIONS = ['Coffee', 'Design', 'Music', 'Gaming', 'Food', 'Movies', 'Sports', 'Art', 'Tech', 'Fashion'];
 
 const Profile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { currentUser, registeredUsers, updateProfile, posts, createPost, deletePost, archivePost, logout } = useAppContext();
+  const { 
+    currentUser, 
+    registeredUsers, 
+    updateProfile, 
+    posts, 
+    deletePost, 
+    archivePost, 
+    unarchivePost,
+    logout, 
+    requests, 
+    meetups, 
+    sendRequest, 
+    respondToRequest,
+    theme
+  } = useAppContext();
   
   const isPublicView = id && id !== currentUser.id;
   const profileUser = isPublicView ? registeredUsers.find(u => u.id === id) : currentUser;
 
   const [isEditing, setIsEditing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState('posts'); // 'posts' or 'archived'
+  const [selectedPost, setSelectedPost] = useState(null); // For post detail modal
   
   // Local edit state
+  const [name, setName] = useState(profileUser?.name || '');
   const [bio, setBio] = useState(profileUser?.bio || '');
   const [interests, setInterests] = useState(profileUser?.interests || []);
   const [avatarUrl, setAvatarUrl] = useState(profileUser?.avatar || '');
 
   const fileInputRef = useRef(null);
-  const postImageRef = useRef(null);
-
-  // New Post State
-  const [postText, setPostText] = useState('');
-  const [postImage, setPostImage] = useState('');
-  const [postImageRatio, setPostImageRatio] = useState('auto');
 
   const handleSave = () => {
-    updateProfile({ bio, interests, avatar: avatarUrl });
+    updateProfile({ name, bio, interests, avatar: avatarUrl });
     setIsEditing(false);
   };
 
@@ -80,44 +105,6 @@ const Profile = () => {
     reader.readAsDataURL(file);
   };
 
-  const compressPostImage = (file, callback) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        // Support up to 4K resolution
-        const MAX_WIDTH = 3840;
-        const MAX_HEIGHT = 2160;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        // Export as very high quality JPEG (4K)
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-        callback(dataUrl);
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleImageUpload = (e, setter) => {
     const file = e.target.files[0];
     if (file) {
@@ -127,294 +114,580 @@ const Profile = () => {
     }
   };
 
-  const handlePostImageUpload = (e, setter) => {
-    const file = e.target.files[0];
-    if (file) {
-      compressPostImage(file, (compressedBase64) => {
-        setter(compressedBase64);
-      });
-    }
-  };
-
-  const handleCreatePost = (e) => {
-    e.preventDefault();
-    if (postText.trim() || postImage) {
-      createPost(postText.trim(), postImage, postImageRatio);
-      setPostText('');
-      setPostImage('');
-      setPostImageRatio('auto');
-    }
-  };
-
-  const myPosts = posts.filter(p => p.authorId === profileUser?.id && !p.isArchived).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
   if (!profileUser) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>User not found</div>;
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'var(--bg-color)', color: 'var(--text-primary)' }}>
+        <p style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>User not found</p>
+        <button className="btn btn-primary" onClick={() => navigate(-1)}>Go Back</button>
+      </div>
+    );
   }
 
+  // Stats calculation
+  const myPosts = posts.filter(p => p.authorId === profileUser.id && !p.isArchived).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const myArchivedPosts = posts.filter(p => p.authorId === profileUser.id && p.isArchived).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const myMeetupsCount = meetups.filter(m => m.authorId === profileUser.id).length;
+  const myConnectionsCount = requests.filter(r => r.status === 'accepted' && (r.fromId === profileUser.id || r.toId === profileUser.id)).length;
+
+  // Connection Request between currentUser and profileUser
+  const connectionRequest = requests.find(r => 
+    (r.fromId === currentUser.id && r.toId === profileUser.id) ||
+    (r.fromId === profileUser.id && r.toId === currentUser.id)
+  );
+
   return (
-    <div style={{ padding: '1rem', paddingTop: '2rem', paddingBottom: '120px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+    <div style={{ paddingBottom: '120px', minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-primary)' }}>
+      {/* Header Toolbar */}
+      <div className="page-sticky-header" style={{ padding: '0.8rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {isPublicView && (
             <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.25rem' }}>
-              <ArrowLeft size={24} />
+              <ArrowLeft size={22} />
             </button>
           )}
-          {isPublicView ? profileUser.name : 'Profile'}
-        </h1>
+          <span style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
+            {profileUser.email ? profileUser.email.split('@')[0] : 'profile'}
+          </span>
+        </div>
         {!isPublicView && (
           <button 
             onClick={() => setShowSettings(true)}
             style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.5rem' }}
           >
-            <SettingsIcon size={24} />
+            <SettingsIcon size={22} />
           </button>
         )}
       </div>
 
-      <div className="glass-panel" style={{ textAlign: 'center', marginBottom: '2rem', padding: '2rem 1rem' }}>
-        <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 1rem auto' }}>
-          <img 
-            src={isEditing ? (avatarUrl || profileUser.avatar) : profileUser.avatar} 
-            alt={profileUser.name} 
-            style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--surface-border)' }}
-          />
-          {isEditing && !isPublicView && (
+      <div style={{ padding: '1rem' }}>
+        {/* Instagram Profile Header Info Grid */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+          {/* Avatar on Left */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <img 
+              src={isEditing ? (avatarUrl || profileUser.avatar) : profileUser.avatar} 
+              alt={profileUser.name} 
+              style={{ width: '84px', height: '84px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid var(--surface-border)', padding: '3px' }}
+            />
+            {isEditing && !isPublicView && (
+              <>
+                <button 
+                  onClick={() => fileInputRef.current.click()}
+                  style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--text-primary)', color: 'var(--bg-color)', borderRadius: '50%', padding: '0.4rem', display: 'flex', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+                >
+                  <Camera size={12} />
+                </button>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  onChange={(e) => handleImageUpload(e, setAvatarUrl)}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Stats on Right */}
+          <div style={{ display: 'flex', flex: 1, justifyContent: 'space-around', textAlign: 'center' }}>
+            <div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{myPosts.length}</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500 }}>posts</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{myMeetupsCount}</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500 }}>meetups</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{myConnectionsCount}</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500 }}>connections</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bio Text area */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          {isEditing && !isPublicView ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Display Name</label>
+                <input 
+                  type="text" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input-field"
+                  style={{ width: '100%', padding: '0.55rem 0.8rem', fontSize: '0.88rem', borderRadius: '8px' }}
+                  placeholder="Enter name"
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Bio</label>
+                <textarea 
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  className="input-field"
+                  style={{ width: '100%', minHeight: '70px', resize: 'vertical', fontSize: '0.88rem', padding: '0.55rem 0.8rem', borderRadius: '8px' }}
+                  placeholder="Write a bio..."
+                />
+              </div>
+            </div>
+          ) : (
             <>
-              <button 
-                onClick={() => fileInputRef.current.click()}
-                style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--primary-color)', color: 'var(--bg-color)', borderRadius: '50%', padding: '0.5rem', display: 'flex', border: 'none', cursor: 'pointer' }}
-              >
-                <Camera size={16} />
-              </button>
-              <input 
-                type="file" 
-                accept="image/*" 
-                ref={fileInputRef} 
-                style={{ display: 'none' }} 
-                onChange={(e) => handleImageUpload(e, setAvatarUrl)}
-              />
+              <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '0.95rem', fontWeight: 700 }}>{profileUser.name}</h4>
+              {profileUser.gender && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'var(--surface-color)', padding: '0.15rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginBottom: '0.35rem' }}>
+                  {profileUser.gender}
+                </span>
+              )}
+              <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.4, opacity: 0.95, whiteSpace: 'pre-wrap' }}>
+                {profileUser.bio || "No bio yet."}
+              </p>
             </>
           )}
         </div>
 
-        <h2 style={{ marginBottom: '0.25rem' }}>{profileUser.name}</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{profileUser.email}</p>
-        {profileUser.gender && <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{profileUser.gender}</p>}
-      </div>
+        {/* Interests Section */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+            {isEditing && !isPublicView ? (
+              INTEREST_OPTIONS.map(interest => (
+                <button 
+                  key={interest}
+                  onClick={() => toggleInterest(interest)}
+                  style={{
+                    padding: '0.3rem 0.75rem',
+                    borderRadius: '999px',
+                    border: '1.5px solid var(--surface-border)',
+                    background: interests.includes(interest) ? (theme === 'dark' ? '#ffffff' : '#000000') : 'var(--surface-color)',
+                    color: interests.includes(interest) ? (theme === 'dark' ? '#000000' : '#ffffff') : 'var(--text-primary)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {interest}
+                </button>
+              ))
+            ) : (
+              profileUser.interests && profileUser.interests.length > 0 ? (
+                profileUser.interests.map(interest => (
+                  <span key={interest} className="tag-pill" style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
+                    {interest}
+                  </span>
+                ))
+              ) : (
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>No interests added.</span>
+              )
+            )}
+          </div>
+        </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h3 style={{ margin: 0 }}>About</h3>
-        {!isPublicView && (
-          !isEditing ? (
-            <button 
-              onClick={() => setIsEditing(true)}
-              className="btn btn-glass"
-              style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', color: 'var(--text-primary)' }}
-            >
-              <Edit2 size={14} style={{ marginRight: '0.25rem' }} /> Edit
-            </button>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
+          {!isPublicView ? (
+            isEditing ? (
+              <>
+                <button 
+                  onClick={handleSave}
+                  className="btn btn-primary"
+                  style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600 }}
+                >
+                  Save Changes
+                </button>
+                <button 
+                  onClick={() => {
+                    setName(profileUser.name || '');
+                    setBio(profileUser.bio || '');
+                    setInterests(profileUser.interests || []);
+                    setAvatarUrl(profileUser.avatar || '');
+                    setIsEditing(false);
+                  }}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600 }}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600, border: '1px solid var(--surface-border)' }}
+                >
+                  Edit Profile
+                </button>
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600, border: '1px solid var(--surface-border)' }}
+                >
+                  Edit Details
+                </button>
+              </>
+            )
           ) : (
+            <>
+              {/* Public View Connections Actions */}
+              {!connectionRequest ? (
+                <button 
+                  onClick={() => sendRequest(profileUser.id)}
+                  className="btn btn-primary"
+                  style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+                >
+                  <UserPlus size={16} /> Connect
+                </button>
+              ) : connectionRequest.status === 'pending' ? (
+                connectionRequest.fromId === currentUser.id ? (
+                  <button 
+                    disabled
+                    className="btn btn-secondary"
+                    style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600, opacity: 0.7 }}
+                  >
+                    Requested
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
+                    <button 
+                      onClick={() => respondToRequest(connectionRequest.id, 'accepted')}
+                      className="btn btn-primary"
+                      style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600 }}
+                    >
+                      Accept
+                    </button>
+                    <button 
+                      onClick={() => respondToRequest(connectionRequest.id, 'declined')}
+                      className="btn btn-secondary"
+                      style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600 }}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                )
+              ) : connectionRequest.status === 'accepted' ? (
+                <>
+                  <button 
+                    onClick={() => navigate(`/chat/${connectionRequest.id}`)}
+                    className="btn btn-primary"
+                    style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+                  >
+                    <MessageCircle size={16} /> Message
+                  </button>
+                  <button 
+                    disabled
+                    className="btn btn-secondary"
+                    style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', border: '1px solid var(--surface-border)' }}
+                  >
+                    <UserCheck size={16} /> Connected
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={() => sendRequest(profileUser.id)}
+                  className="btn btn-primary"
+                  style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600 }}
+                >
+                  Connect Again
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Tab Selection (Grid vs Archive) */}
+        <div style={{ display: 'flex', borderTop: '1px solid var(--surface-border)', borderBottom: '1px solid var(--surface-border)', marginBottom: '0.5rem' }}>
+          <button 
+            onClick={() => setActiveTab('posts')}
+            style={{ 
+              flex: 1, 
+              background: 'none', 
+              border: 'none', 
+              padding: '0.75rem 0', 
+              color: activeTab === 'posts' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              borderBottom: activeTab === 'posts' ? '2px solid var(--text-primary)' : 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.35rem',
+              fontWeight: activeTab === 'posts' ? 600 : 400
+            }}
+          >
+            <Grid size={16} />
+            <span style={{ fontSize: '0.85rem' }}>Posts</span>
+          </button>
+          
+          {!isPublicView && (
             <button 
-              onClick={handleSave}
-              className="btn btn-accent"
-              style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+              onClick={() => setActiveTab('archived')}
+              style={{ 
+                flex: 1, 
+                background: 'none', 
+                border: 'none', 
+                padding: '0.75rem 0', 
+                color: activeTab === 'archived' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderBottom: activeTab === 'archived' ? '2px solid var(--text-primary)' : 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                fontWeight: activeTab === 'archived' ? 600 : 400
+              }}
             >
-              Save
+              <Archive size={16} />
+              <span style={{ fontSize: '0.85rem' }}>Archived</span>
             </button>
+          )}
+        </div>
+
+        {/* Instagram Grid of Posts */}
+        {activeTab === 'posts' ? (
+          myPosts.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px' }}>
+              {myPosts.map(post => (
+                <div 
+                  key={post.id} 
+                  onClick={() => setSelectedPost(post)}
+                  style={{ 
+                    position: 'relative', 
+                    width: '100%', 
+                    aspectRatio: '1 / 1', 
+                    background: 'var(--surface-color)', 
+                    borderRadius: '4px',
+                    overflow: 'hidden', 
+                    cursor: 'pointer',
+                    boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)'
+                  }}
+                >
+                  {post.image ? (
+                    <img 
+                      src={post.image} 
+                      alt="Post" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                  ) : (
+                    <div style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      padding: '0.5rem', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      textAlign: 'center', 
+                      background: 'linear-gradient(135deg, var(--surface-color) 0%, rgba(0, 0, 0, 0.03) 100%)',
+                      fontSize: '0.72rem', 
+                      lineHeight: 1.3,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      fontWeight: 500,
+                      opacity: 0.85
+                    }}>
+                      {post.text && post.text.length > 35 ? `${post.text.slice(0, 35)}...` : post.text}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-secondary)' }}>
+              <Grid size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+              <p style={{ margin: 0, fontSize: '0.9rem' }}>No posts yet.</p>
+            </div>
+          )
+        ) : (
+          myArchivedPosts.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px' }}>
+              {myArchivedPosts.map(post => (
+                <div 
+                  key={post.id} 
+                  onClick={() => setSelectedPost(post)}
+                  style={{ 
+                    position: 'relative', 
+                    width: '100%', 
+                    aspectRatio: '1 / 1', 
+                    background: 'var(--surface-color)', 
+                    borderRadius: '4px',
+                    overflow: 'hidden', 
+                    cursor: 'pointer'
+                  }}
+                >
+                  {post.image ? (
+                    <img 
+                      src={post.image} 
+                      alt="Post" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} 
+                    />
+                  ) : (
+                    <div style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      padding: '0.5rem', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      textAlign: 'center', 
+                      background: 'var(--surface-color)', 
+                      fontSize: '0.72rem', 
+                      lineHeight: 1.3,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      fontWeight: 500,
+                      opacity: 0.7
+                    }}>
+                      {post.text && post.text.length > 35 ? `${post.text.slice(0, 35)}...` : post.text}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-secondary)' }}>
+              <Archive size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+              <p style={{ margin: 0, fontSize: '0.9rem' }}>No archived posts.</p>
+            </div>
           )
         )}
       </div>
 
-      <div className="glass-panel" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-        {isEditing && !isPublicView ? (
-          <textarea 
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            className="input-field"
-            style={{ width: '100%', minHeight: '80px', resize: 'vertical' }}
-            placeholder="Write something about yourself..."
-          />
-        ) : (
-          <p style={{ fontSize: '1.05rem', opacity: 0.9 }}>{profileUser.bio || "No bio yet."}</p>
-        )}
-      </div>
-
-      <h3 style={{ marginBottom: '1rem' }}>Interests</h3>
-      <div className="glass-panel" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-        {isEditing && !isPublicView ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {INTEREST_OPTIONS.map(interest => (
-              <button 
-                key={interest}
-                onClick={() => toggleInterest(interest)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '999px',
-                  border: '1px solid var(--surface-border)',
-                  background: interests.includes(interest) ? 'var(--primary-color)' : 'var(--surface-color)',
-                  color: interests.includes(interest) ? 'var(--bg-color)' : 'var(--text-primary)',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                {interest}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {profileUser.interests && profileUser.interests.length > 0 ? (
-              profileUser.interests.map(interest => (
-                <span key={interest} className="tag-pill">
-                  {interest}
-                </span>
-              ))
-            ) : (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No interests added.</p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Posts Section */}
-      <h3 style={{ marginBottom: '1rem' }}>{isPublicView ? "Posts" : "My Posts"}</h3>
-      
-      {!isPublicView && (
-        <div className="glass-panel" style={{ marginBottom: '2rem', padding: '1rem' }}>
-          <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <input 
-              type="text" 
-              placeholder="What's on your mind?" 
-              value={postText}
-              onChange={(e) => setPostText(e.target.value)}
-              className="input-field"
-              style={{ borderRadius: '12px' }}
+      {/* Post Detail Modal */}
+      <AnimatePresence>
+        {selectedPost && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedPost(null)}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
             />
-            {postImage && (
-              <>
-                <div style={{ position: 'relative', width: '100%', height: 'auto', aspectRatio: postImageRatio === 'auto' ? 'auto' : postImageRatio, borderRadius: '12px', overflow: 'hidden' }}>
-                  <img src={postImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: postImageRatio === 'auto' ? 'contain' : 'cover' }} />
-                  <button 
-                    type="button"
-                    onClick={() => { setPostImage(''); setPostImageRatio('auto'); }}
-                    style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer' }}
-                  >
-                    ×
-                  </button>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', overflowX: 'auto', scrollbarWidth: 'none' }}>
-                  {['auto', '1/1', '4/3', '16/9', '9/16'].map(ratio => (
-                    <button
-                      key={ratio}
-                      type="button"
-                      onClick={() => setPostImageRatio(ratio)}
-                      style={{
-                        padding: '0.25rem 0.5rem',
-                        fontSize: '0.75rem',
-                        borderRadius: '6px',
-                        border: '1px solid var(--surface-border)',
-                        background: postImageRatio === ratio ? 'var(--primary-color)' : 'transparent',
-                        color: postImageRatio === ratio ? 'var(--bg-color)' : 'var(--text-primary)',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {ratio === 'auto' ? 'Original' : ratio.replace('/', ':')}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <button 
-                type="button"
-                onClick={() => postImageRef.current.click()}
-                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-              >
-                <ImageIcon size={18} /> Add Photo
-              </button>
-              <input 
-                type="file" 
-                accept="image/*" 
-                ref={postImageRef} 
-                style={{ display: 'none' }} 
-                onChange={(e) => handlePostImageUpload(e, setPostImage)}
-              />
-              <button type="submit" className="btn btn-accent" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} disabled={!postText.trim() && !postImage}>
-                Post
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-        {myPosts.length > 0 ? (
-          myPosts.map(post => (
-            <div key={post.id} className="glass-panel" style={{ padding: '1rem' }}>
-              <p style={{ margin: '0 0 0.5rem 0' }}>{post.text}</p>
-              {post.image && (
-                <img src={post.image} alt="Post" style={{ width: '100%', borderRadius: '12px', maxHeight: post.imageRatio === 'auto' || !post.imageRatio ? '400px' : 'none', aspectRatio: post.imageRatio || 'auto', objectFit: post.imageRatio === 'auto' || !post.imageRatio ? 'contain' : 'cover' }} />
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {new Date(post.timestamp).toLocaleString()}
-                </div>
-                {!isPublicView && (
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button 
-                      onClick={() => archivePost(post.id)}
-                      style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--surface-border)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', cursor: 'pointer' }}
-                      title="Archive Post"
-                    >
-                      <Archive size={14} />
-                    </button>
-                    <button 
-                      onClick={() => deletePost(post.id)}
-                      style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--danger-color)', cursor: 'pointer' }}
-                      title="Delete Post"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+            {/* Modal Box */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              style={{ 
+                width: '100%', 
+                maxWidth: '450px', 
+                background: 'var(--surface-color)', 
+                borderRadius: '24px', 
+                border: '1px solid var(--surface-border)',
+                overflow: 'hidden',
+                zIndex: 11001,
+                boxShadow: '0 20px 50px rgba(0,0,0,0.3)'
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1.25rem', borderBottom: '1px solid var(--surface-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <img src={profileUser.avatar} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} alt="Avatar" />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>{profileUser.name}</h4>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+                      <Clock size={10} />
+                      {new Date(selectedPost.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedPost(null)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', padding: '0.2rem' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div style={{ maxHeight: '70vh', overflowY: 'auto', padding: '1.25rem' }}>
+                {selectedPost.text && (
+                  <p style={{ margin: '0 0 1rem 0', fontSize: '0.98rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                    {selectedPost.text}
+                  </p>
+                )}
+                {selectedPost.image && (
+                  <img 
+                    src={selectedPost.image} 
+                    alt="Post Detail" 
+                    style={{ 
+                      width: '100%', 
+                      borderRadius: '12px', 
+                      border: '1px solid var(--surface-border)',
+                      maxHeight: selectedPost.imageRatio === 'auto' || !selectedPost.imageRatio ? '350px' : 'none', 
+                      aspectRatio: selectedPost.imageRatio || 'auto', 
+                      objectFit: selectedPost.imageRatio === 'auto' || !selectedPost.imageRatio ? 'contain' : 'cover'
+                    }} 
+                  />
                 )}
               </div>
-            </div>
-          ))
-        ) : (
-          <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No posts yet.</p>
-        )}
-      </div>
 
-      {!isPublicView && (
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-          <button 
-            className="btn btn-secondary" 
-            onClick={logout}
-            style={{ 
-              width: '100%', 
-              maxWidth: '300px', 
-              color: 'var(--danger-color)', 
-              borderColor: 'rgba(255, 71, 87, 0.3)', 
-              background: 'rgba(255, 71, 87, 0.05)', 
-              padding: '0.8rem',
-              fontWeight: 600
-            }}
-          >
-            Sign Out
-          </button>
-        </div>
-      )}
+              {/* Footer Actions (Only for personal posts) */}
+              {!isPublicView && (
+                <div style={{ display: 'flex', borderTop: '1px solid var(--surface-border)', padding: '0.85rem' }}>
+                  <button 
+                    onClick={() => {
+                      if (selectedPost.isArchived) {
+                        unarchivePost(selectedPost.id);
+                      } else {
+                        archivePost(selectedPost.id);
+                      }
+                      setSelectedPost(null);
+                    }}
+                    style={{ 
+                      flex: 1, 
+                      background: 'none', 
+                      border: 'none', 
+                      color: 'var(--text-primary)', 
+                      fontSize: '0.85rem', 
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      padding: '0.5rem'
+                    }}
+                  >
+                    <Archive size={16} />
+                    {selectedPost.isArchived ? 'Unarchive' : 'Archive'}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      deletePost(selectedPost.id);
+                      setSelectedPost(null);
+                    }}
+                    style={{ 
+                      flex: 1, 
+                      background: 'none', 
+                      border: 'none', 
+                      color: 'var(--danger-color)', 
+                      fontSize: '0.85rem', 
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      padding: '0.5rem'
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showSettings && (
           <Settings onClose={() => setShowSettings(false)} />
         )}
       </AnimatePresence>
-
     </div>
   );
 };
