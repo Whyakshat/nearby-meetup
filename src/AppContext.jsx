@@ -545,7 +545,7 @@ export const AppProvider = ({ children }) => {
       
       const newMsg = await authFetch('/messages', {
         method: 'POST',
-        body: JSON.stringify({ receiverId, content, requestId })
+        body: JSON.stringify({ receiverId, content, requestId, type, expiresAt })
       });
       setMessages(prev => [...prev, newMsg]);
     } catch (err) { }

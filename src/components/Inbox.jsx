@@ -5,7 +5,7 @@ import { Search, ChevronRight, MessageSquare, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Inbox = () => {
-  const { requests, currentUser, respondToRequest, registeredUsers } = useAppContext();
+  const { requests, currentUser, respondToRequest, registeredUsers, messages } = useAppContext();
   if (!currentUser) return null;
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,18 +19,31 @@ const Inbox = () => {
     .map(req => {
       const isReceived = req.to?.id === currentUser.id;
       const otherUser = getFreshUser(isReceived ? req.from?.id : req.to?.id);
-      return { ...req, isReceived, otherUser };
+      
+      const reqMessages = messages.filter(m => m.requestId === req.id);
+      const lastMsg = reqMessages.length > 0 ? reqMessages[reqMessages.length - 1] : null;
+      const sortTime = lastMsg ? new Date(lastMsg.timestamp) : new Date(req.createdAt || req.timestamp || Date.now());
+      
+      return { 
+        ...req, 
+        isReceived, 
+        otherUser, 
+        lastMsg, 
+        sortTime 
+      };
     })
     .filter(msg => {
       const query = searchQuery.toLowerCase().trim();
       if (!query) return true;
+      const lastMsgText = msg.lastMsg ? msg.lastMsg.content.toLowerCase() : '';
       return (
         msg.otherUser.name.toLowerCase().includes(query) ||
         (msg.otherUser.username && msg.otherUser.username.toLowerCase().includes(query)) ||
-        msg.activity.toLowerCase().includes(query)
+        msg.activity.toLowerCase().includes(query) ||
+        lastMsgText.includes(query)
       );
     })
-    .sort((a, b) => new Date(b.createdAt || Date.now()) - new Date(a.createdAt || Date.now()));
+    .sort((a, b) => b.sortTime - a.sortTime);
 
   const pendingCount = requests.filter(r => r.to?.id === currentUser.id && r.status === 'pending').length;
 
@@ -145,7 +158,7 @@ const Inbox = () => {
                   )}
                 </div>
 
-                {/* Avatar with Status Ring */}
+                 {/* Avatar */}
                 <div
                   onClick={(e) => {
                     e.stopPropagation();
@@ -164,17 +177,6 @@ const Inbox = () => {
                       border: '1px solid var(--surface-border)'
                     }}
                   />
-                  {/* Online dot simulation */}
-                  <div style={{ 
-                    position: 'absolute', 
-                    bottom: 0, 
-                    right: 0, 
-                    width: '12px', 
-                    height: '12px', 
-                    background: '#34A853', 
-                    borderRadius: '50%', 
-                    border: '2px solid var(--bg-color)' 
-                  }} />
                 </div>
 
                 {/* Info and Message Body */}
@@ -198,7 +200,7 @@ const Inbox = () => {
                       fontWeight: isUnread ? 600 : 400,
                       flexShrink: 0 
                     }}>
-                      {formatIOSTime(msg.createdAt)}
+                      {formatIOSTime(msg.sortTime)}
                     </span>
                   </div>
 
@@ -212,20 +214,22 @@ const Inbox = () => {
                       textOverflow: 'ellipsis',
                       flex: 1
                     }}>
-                      {msg.isReceived ? (
-                        msg.status === 'pending' ? `Requested: "${msg.activity}"` :
-                        msg.status === 'accepted' ? `Connected on: ${msg.activity}` :
-                        'Declined request'
+                      {msg.lastMsg ? (
+                        msg.lastMsg.type === 'location_static' ? '📍 Shared Location' :
+                        msg.lastMsg.type === 'location_live' ? '📍 Live Location' :
+                        msg.lastMsg.content
                       ) : (
-                        msg.status === 'pending' ? `Sent: "${msg.activity}"` :
-                        msg.status === 'accepted' ? `Accepted connection request` :
-                        'Declined request'
+                        msg.isReceived ? (
+                          msg.status === 'pending' ? `Requested: "${msg.activity}"` :
+                          msg.status === 'accepted' ? `Connected on: ${msg.activity}` :
+                          'Declined request'
+                        ) : (
+                          msg.status === 'pending' ? `Sent: "${msg.activity}"` :
+                          msg.status === 'accepted' ? `Accepted connection request` :
+                          'Declined request'
+                        )
                       )}
                     </span>
-
-                    {msg.status === 'accepted' && (
-                      <ChevronRight size={16} style={{ color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }} />
-                    )}
                   </div>
 
                   {/* iOS Accept/Decline action block (Inline) */}

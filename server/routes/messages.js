@@ -26,13 +26,15 @@ router.get('/', auth, async (req, res) => {
 // Send a message
 router.post('/', auth, async (req, res) => {
   try {
-    const { receiverId, content, requestId } = req.body;
+    const { receiverId, content, requestId, type, expiresAt } = req.body;
     const message = await prisma.message.create({
       data: {
         senderId: req.user.id,
         receiverId,
         content,
-        requestId
+        requestId,
+        type: type || 'text',
+        expiresAt: expiresAt ? new Date(expiresAt) : null
       }
     });
     res.json(message);
