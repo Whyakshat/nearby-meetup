@@ -8,6 +8,7 @@ import postsRoutes from './routes/posts.js';
 import meetupsRoutes from './routes/meetups.js';
 import requestsRoutes from './routes/requests.js';
 import messagesRoutes from './routes/messages.js';
+import aiRoutes from './routes/ai.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use('/api/posts', postsRoutes);
 app.use('/api/meetups', meetupsRoutes);
 app.use('/api/requests', requestsRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/ai', aiRoutes);
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, (err) => {

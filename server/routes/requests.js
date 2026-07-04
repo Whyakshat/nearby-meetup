@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../db.js';
 import auth from './auth.middleware.js';
+import { trainInterestAffinity } from './ai.js';
 
 const router = express.Router();
 
@@ -75,7 +76,54 @@ router.put('/:id', auth, async (req, res) => {
         to: { select: { id: true, name: true, avatar: true, bio: true } }
       }
     });
+
+    if (status === 'accepted') {
+      const fullRequest = await prisma.request.findUnique({
+        where: { id: req.params.id },
+        include: {
+          from: { select: { interests: true } },
+          to: { select: { interests: true } }
+        }
+      });
+      if (fullRequest && fullRequest.from && fullRequest.to) {
+        try {
+          const interestsA = JSON.parse(fullRequest.from.interests || '[]');
+          const interestsB = JSON.parse(fullRequest.to.interests || '[]');
+          await trainInterestAffinity(interestsA, interestsB);
+        } catch (e) {
+          console.error('Failed to train AI affinity on acceptance:', e);
+        }
+      }
+    }
+
     res.json(request);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Cancel/delete a request
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const request = await prisma.request.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!request) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+
+    // Only the sender can cancel a pending/accepted request
+    if (request.fromId !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    await prisma.request.delete({
+      where: { id: req.params.id }
+    });
+
+    res.json({ message: 'Request cancelled successfully', requestId: req.params.id });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

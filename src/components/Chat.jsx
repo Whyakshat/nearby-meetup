@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
-import { ArrowLeft, Send, MapPin, X } from 'lucide-react';
+import { ArrowLeft, Send, MapPin, X, Sparkles } from 'lucide-react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5001/api'
+  : 'https://nearby-meetup.onrender.com/api';
 
 // Fix leaflet icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -22,13 +26,49 @@ const Chat = () => {
   const [showLocationMenu, setShowLocationMenu] = useState(false);
   const [showTimerMenu, setShowTimerMenu] = useState(false);
   
+  // AI Icebreaker states
+  const [icebreakers, setIcebreakers] = useState([]);
+  const [showIcebreakers, setShowIcebreakers] = useState(true);
+  const [loadingIcebreakers, setLoadingIcebreakers] = useState(false);
+  
   const messagesEndRef = useRef(null);
 
   const request = requests.find(r => r.id === id);
   
+  const otherUserId = request ? (request.from.id === currentUser.id ? request.to.id : request.from.id) : null;
+  const otherUser = request ? (registeredUsers?.find(u => u.id === otherUserId) || (request.from.id === currentUser.id ? request.to : request.from)) : null;
+
+  const chatMessages = messages.filter(m => m.requestId === id);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    if (!otherUser?.interests) return;
+    
+    const fetchIcebreakers = async () => {
+      setLoadingIcebreakers(true);
+      try {
+        const res = await fetch(`${API_URL}/ai/icebreakers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('vibecheck_token')}`
+          },
+          body: JSON.stringify({ interests: otherUser.interests })
+        });
+        const data = await res.json();
+        setIcebreakers(data.icebreakers || []);
+      } catch (err) {
+        console.error('Failed to fetch icebreakers:', err);
+      } finally {
+        setLoadingIcebreakers(false);
+      }
+    };
+
+    fetchIcebreakers();
+  }, [otherUser?.id]);
 
   if (!request || request.status !== 'accepted') {
     return (
@@ -38,11 +78,6 @@ const Chat = () => {
       </div>
     );
   }
-
-  const otherUserId = request.from.id === currentUser.id ? request.to.id : request.from.id;
-  const otherUser = registeredUsers?.find(u => u.id === otherUserId) || (request.from.id === currentUser.id ? request.to : request.from);
-
-  const chatMessages = messages.filter(m => m.requestId === id);
 
   const handleSend = (e) => {
     e.preventDefault();
@@ -135,6 +170,55 @@ const Chat = () => {
           <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{request.activity}</p>
         </div>
       </div>
+
+      {/* AI Icebreakers Panel */}
+      {showIcebreakers && icebreakers.length > 0 && (
+        <div style={{ 
+          background: 'var(--surface-color)', 
+          borderBottom: '1px solid var(--surface-border)', 
+          padding: '0.65rem 1rem', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '0.4rem',
+          zIndex: 5
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <Sparkles size={11} /> AI Icebreakers
+            </span>
+            <button 
+              onClick={() => setShowIcebreakers(false)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.72rem', cursor: 'pointer', padding: 0 }}
+            >
+              Hide
+            </button>
+          </div>
+          <div className="hide-scrollbar" style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
+            {icebreakers.map((breaker, idx) => (
+              <button
+                key={idx}
+                onClick={() => setInputText(breaker)}
+                style={{
+                  background: 'var(--bg-color)',
+                  border: '1px solid var(--surface-border)',
+                  color: 'var(--text-primary)',
+                  padding: '0.45rem 0.8rem',
+                  borderRadius: '12px',
+                  fontSize: '0.78rem',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-color)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-color)'}
+              >
+                {breaker}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Messages Area */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '90px' }}>

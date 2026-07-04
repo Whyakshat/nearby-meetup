@@ -61,9 +61,41 @@ const Profile = () => {
   const [interests, setInterests] = useState(profileUser?.interests || []);
   const [avatarUrl, setAvatarUrl] = useState(profileUser?.avatar || '');
 
+  const [vibeScore, setVibeScore] = useState(null);
+  const [vibeInsight, setVibeInsight] = useState('');
+  const [loadingVibe, setLoadingVibe] = useState(false);
+  const [suggestingBio, setSuggestingBio] = useState(false);
+
   const fileInputRef = useRef(null);
   const prevUsernameRef = useRef(profileUser?.username || '');
   const checkTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isPublicView || !profileUser?.id) return;
+    
+    const fetchVibeScore = async () => {
+      setLoadingVibe(true);
+      try {
+        const res = await fetch(`${API_URL}/ai/match-score`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('vibecheck_token')}`
+          },
+          body: JSON.stringify({ targetUserId: profileUser.id })
+        });
+        const data = await res.json();
+        setVibeScore(data.score);
+        setVibeInsight(data.insight);
+      } catch (err) {
+        console.error('Failed to fetch vibe score', err);
+      } finally {
+        setLoadingVibe(false);
+      }
+    };
+
+    fetchVibeScore();
+  }, [profileUser?.id, isPublicView]);
 
   const handleUsernameChange = (val) => {
     const cleanVal = val.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
@@ -113,6 +145,28 @@ const Profile = () => {
     updateProfile({ name, username, bio, interests, avatar: avatarUrl });
     setIsEditing(false);
     prevUsernameRef.current = username;
+  };
+
+  const handleSuggestBio = async () => {
+    setSuggestingBio(true);
+    try {
+      const res = await fetch(`${API_URL}/ai/generate-bio`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('vibecheck_token')}`
+        },
+        body: JSON.stringify({ name, interests, style: 'casual' })
+      });
+      const data = await res.json();
+      if (data.bio) {
+        setBio(data.bio);
+      }
+    } catch (err) {
+      console.error('Failed to suggest bio', err);
+    } finally {
+      setSuggestingBio(false);
+    }
   };
 
   const toggleInterest = (interest) => {
@@ -297,7 +351,17 @@ const Profile = () => {
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Bio</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Bio</label>
+                  <button 
+                    type="button" 
+                    onClick={handleSuggestBio}
+                    disabled={suggestingBio}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.2rem', padding: 0 }}
+                  >
+                    <Sparkles size={12} /> {suggestingBio ? 'Generating...' : 'AI Suggest Bio'}
+                  </button>
+                </div>
                 <textarea 
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
@@ -320,9 +384,25 @@ const Profile = () => {
                   {profileUser.gender}
                 </span>
               )}
-              <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.4, opacity: 0.95, whiteSpace: 'pre-wrap' }}>
+              <p style={{ margin: '0 0 1rem 0', fontSize: '0.88rem', lineHeight: 1.4, opacity: 0.95, whiteSpace: 'pre-wrap' }}>
                 {profileUser.bio || "No bio yet."}
               </p>
+              
+              {isPublicView && vibeScore !== null && (
+                <div className="glass-panel" style={{ padding: '1rem', borderRadius: '14px', marginTop: '0.75rem', border: '1px solid var(--surface-border)', background: 'var(--surface-color)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Sparkles size={13} /> AI VIBE MATCH
+                    </span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--accent-color)' }}>
+                      {vibeScore}% Match
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    {vibeInsight}
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../AppContext';
 import UserCard from './UserCard';
 import MeetupsFeed from './MeetupsFeed';
-import { Search, Map as MapIcon, List, Users, Compass, MapPin } from 'lucide-react';
+import { Search, Map as MapIcon, List, Users, Compass, MapPin, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -17,6 +17,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5001/api'
+  : 'https://nearby-meetup.onrender.com/api';
+
 const INTEREST_OPTIONS = ['Coffee', 'Design', 'Music', 'Gaming', 'Food', 'Movies', 'Sports', 'Art'];
 
 const Dashboard = () => {
@@ -26,7 +30,14 @@ const Dashboard = () => {
   const [feedMode, setFeedMode] = useState('people'); // 'people' or 'meetups'
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [selectedUserForPosts, setSelectedUserForPosts] = useState(null);
+  
+  // AI Search states
+  const [isAiSearch, setIsAiSearch] = useState(false);
+  const [aiMatchedInterests, setAiMatchedInterests] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   const navigate = useNavigate();
+  const searchTimerRef = useRef(null);
 
   const toggleInterest = (interest) => {
     if (selectedInterests.includes(interest)) {
@@ -36,9 +47,49 @@ const Dashboard = () => {
     }
   };
 
+  useEffect(() => {
+    if (!isAiSearch || !searchQuery.trim()) {
+      setAiMatchedInterests([]);
+      return;
+    }
+
+    setIsSearching(true);
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_URL}/ai/semantic-search`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('vibecheck_token')}`
+          },
+          body: JSON.stringify({ query: searchQuery })
+        });
+        const data = await res.json();
+        setAiMatchedInterests(data.matchedInterests || []);
+      } catch (err) {
+        console.error('Semantic search failed:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
+
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery, isAiSearch]);
+
   const filteredUsers = cityUsers.filter(user => {
     if (user.id === currentUser.id) return false;
     
+    if (isAiSearch && searchQuery.trim()) {
+      if (aiMatchedInterests.length === 0) return false;
+      return user.interests && user.interests.some(i => aiMatchedInterests.includes(i));
+    }
+
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
                          (user.bio && user.bio.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -88,16 +139,41 @@ const Dashboard = () => {
         {feedMode === 'people' && (
           <>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+              <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                <Search size={16} style={{ position: 'absolute', left: '1rem', color: 'var(--text-secondary)' }} />
                 <input 
                   type="text" 
-                  placeholder="Search people..." 
+                  placeholder={isAiSearch ? "Ask AI (e.g. coffee design, coding...)" : "Search people..."} 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="input-field"
-                  style={{ paddingLeft: '2.75rem', paddingRight: '1rem' }}
+                  style={{ paddingLeft: '2.75rem', paddingRight: '5.2rem', width: '100%' }}
                 />
+                <button 
+                  onClick={() => {
+                    setIsAiSearch(!isAiSearch);
+                    setSearchQuery('');
+                  }}
+                  type="button"
+                  style={{ 
+                    position: 'absolute', 
+                    right: '0.4rem', 
+                    background: isAiSearch ? 'var(--accent-gradient)' : 'rgba(120, 120, 120, 0.15)',
+                    color: isAiSearch ? 'white' : 'var(--text-secondary)',
+                    border: 'none', 
+                    borderRadius: '8px', 
+                    padding: '0.35rem 0.55rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Sparkles size={11} /> {isAiSearch ? 'AI Active' : 'AI'}
+                </button>
               </div>
               <button onClick={() => navigate('/profile')} className="btn btn-glass" style={{ width: '48px', height: '48px', padding: 0, borderRadius: '50%', flexShrink: 0 }}>
                 <img src={currentUser.avatar} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />

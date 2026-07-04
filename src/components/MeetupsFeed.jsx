@@ -1,13 +1,52 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../AppContext';
-import { Users, Plus, X, Calendar, MapPin, CheckCircle2, Clock } from 'lucide-react';
+import { Users, Plus, X, Calendar, MapPin, CheckCircle2, Clock, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5001/api'
+  : 'https://nearby-meetup.onrender.com/api';
+
 const NewMeetupModal = ({ onClose }) => {
-  const { createMeetup } = useAppContext();
+  const { createMeetup, currentUser } = useAppContext();
   const [activity, setActivity] = useState('');
   const [maxParticipants, setMaxParticipants] = useState(2);
+
+  // AI Plan suggestion states
+  const [suggestingPlan, setSuggestingPlan] = useState(false);
+  const [suggestedList, setSuggestedList] = useState([]);
+  const [suggestIndex, setSuggestIndex] = useState(0);
+
+  const handleSuggestPlan = async () => {
+    if (suggestedList.length > 0 && suggestIndex < suggestedList.length) {
+      setActivity(suggestedList[suggestIndex]);
+      setSuggestIndex((suggestIndex + 1) % suggestedList.length);
+      return;
+    }
+
+    setSuggestingPlan(true);
+    try {
+      const res = await fetch(`${API_URL}/ai/suggest-activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('vibecheck_token')}`
+        },
+        body: JSON.stringify({ interests: currentUser?.interests || [] })
+      });
+      const data = await res.json();
+      if (data.activities && data.activities.length > 0) {
+        setSuggestedList(data.activities);
+        setActivity(data.activities[0]);
+        setSuggestIndex(1);
+      }
+    } catch (err) {
+      console.error('Failed to suggest plan', err);
+    } finally {
+      setSuggestingPlan(false);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -35,7 +74,17 @@ const NewMeetupModal = ({ onClose }) => {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>What's the plan?</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>What's the plan?</label>
+              <button 
+                type="button" 
+                onClick={handleSuggestPlan}
+                disabled={suggestingPlan}
+                style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.2rem', padding: 0 }}
+              >
+                <Sparkles size={11} /> {suggestingPlan ? 'Suggesting...' : 'AI Suggest Plan'}
+              </button>
+            </div>
             <input 
               type="text" 
               placeholder="e.g., Going for a movie..." 
@@ -89,7 +138,7 @@ const NewMeetupModal = ({ onClose }) => {
 };
 
 const MeetupCard = ({ meetup }) => {
-  const { registeredUsers, currentUser, joinMeetup, closeMeetup, cityName } = useAppContext();
+  const { registeredUsers, currentUser, joinMeetup, closeMeetup, cityName, requests, cancelRequest } = useAppContext();
   const navigate = useNavigate();
   
   const author = registeredUsers.find(u => u.id === meetup.authorId) || { name: 'Unknown', avatar: '/default-avatar.svg' };
@@ -99,6 +148,13 @@ const MeetupCard = ({ meetup }) => {
   const joinedCount = Array.isArray(meetup.joinedParticipants) ? meetup.joinedParticipants.length : 0;
   const maxCount = meetup.maxParticipants || 0;
   const isFull = joinedCount >= maxCount;
+
+  // Find if current user has requested to join this meetup
+  const meetupRequest = requests.find(r => 
+    r.fromId === currentUser.id && 
+    r.toId === meetup.authorId && 
+    r.activity === `Join Meetup: ${meetup.activity}`
+  );
 
   const timeAgo = (timestamp) => {
     const diff = Date.now() - new Date(timestamp).getTime();
@@ -170,6 +226,41 @@ const MeetupCard = ({ meetup }) => {
         >
           Sort & Close Request
         </button>
+      ) : meetupRequest ? (
+        meetupRequest.status === 'pending' ? (
+          <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+            <button 
+              disabled 
+              className="btn btn-secondary" 
+              style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.9rem', opacity: 0.6, cursor: 'not-allowed' }}
+            >
+              Requested
+            </button>
+            <button 
+              onClick={() => cancelRequest(meetupRequest.id)}
+              className="btn btn-secondary" 
+              style={{ 
+                padding: '0.75rem 1rem', 
+                borderRadius: '12px', 
+                fontSize: '0.9rem', 
+                color: 'var(--danger-color)', 
+                borderColor: 'rgba(255, 71, 87, 0.3)',
+                background: 'rgba(255, 71, 87, 0.05)',
+                fontWeight: 600
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button 
+            disabled 
+            className="btn btn-secondary" 
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', fontSize: '0.9rem', opacity: 0.8, cursor: 'not-allowed' }}
+          >
+            Joined & Connected
+          </button>
+        )
       ) : (
         <button 
           onClick={() => joinMeetup(meetup.id, meetup.authorId, meetup.activity)}

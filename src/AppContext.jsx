@@ -494,6 +494,18 @@ export const AppProvider = ({ children }) => {
     } catch (err) { }
   };
 
+  const cancelRequest = async (requestId) => {
+    try {
+      await authFetch(`/requests/${requestId}`, {
+        method: 'DELETE'
+      });
+      setRequests(prev => prev.filter(req => req.id !== requestId));
+      addNotification('Request cancelled');
+    } catch (err) {
+      addNotification('Failed to cancel request');
+    }
+  };
+
   const sendMessage = async (requestId, content, type = 'text', expiresAt = null) => {
     try {
       const request = requests.find(r => r.id === requestId);
@@ -563,6 +575,7 @@ export const AppProvider = ({ children }) => {
       requests,
       sendRequest,
       respondToRequest,
+      cancelRequest,
       messages,
       sendMessage,
       broadcasts,
