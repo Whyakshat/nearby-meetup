@@ -2,21 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
 import { ArrowLeft, Send, MapPin, X, Sparkles } from 'lucide-react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:5001/api'
   : 'https://nearby-meetup.onrender.com/api';
-
-// Fix leaflet icon issue
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
 
 const Chat = () => {
   const { id } = useParams();
@@ -118,17 +107,44 @@ const Chat = () => {
         isLiveActive = new Date() < new Date(msg.expiresAt);
       }
 
+      const mapUrl = `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
       return (
-        <div style={{ width: '220px', borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(0,0,0,0.15)', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <div 
+          onClick={() => window.open(mapUrl, '_blank')}
+          style={{ 
+            width: '200px', 
+            borderRadius: '16px', 
+            overflow: 'hidden', 
+            cursor: 'pointer', 
+            background: 'var(--surface-color)', 
+            border: '1px solid var(--surface-border)',
+            transition: 'transform 0.2s',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <div style={{ 
+            padding: '0.6rem 0.85rem', 
+            background: msg.type === 'location_live' && isLiveActive ? 'rgba(255, 71, 87, 0.1)' : 'rgba(0,0,0,0.04)', 
+            fontSize: '0.8rem', 
+            fontWeight: 600, 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.35rem', 
+            borderBottom: '1px solid var(--surface-border)',
+            color: msg.type === 'location_live' && isLiveActive ? '#ff4757' : 'var(--text-primary)'
+          }}>
             <MapPin size={13} /> 
             {msg.type === 'location_static' ? 'Current Location' : (isLiveActive ? '🔴 Live Location' : 'Live Location (Ended)')}
           </div>
-          <div style={{ height: '150px', width: '100%', filter: (msg.type === 'location_live' && !isLiveActive) ? 'grayscale(100%) opacity(50%)' : 'none' }}>
-             <MapContainer center={[loc.lat, loc.lng]} zoom={14} style={{ height: '100%', width: '100%' }} zoomControl={false} dragging={false} scrollWheelZoom={false}>
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[loc.lat, loc.lng]} />
-             </MapContainer>
+          <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.72rem', opacity: 0.7, color: 'var(--text-primary)' }}>
+              Coordinates: {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
+            </span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-color)' }}>
+              Tap to View Map
+            </span>
           </div>
         </div>
       );
