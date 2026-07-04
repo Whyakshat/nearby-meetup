@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles, Globe } from 'lucide-react';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -87,8 +87,8 @@ const LandingPage = () => {
             <p style={{ opacity: 0.7, lineHeight: 1.6, marginBottom: '2rem' }}>Connect with people around you through a seamlessly beautiful, translucent interface designed to let your content shine.</p>
             
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✨</div>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🌍</div>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.85)' }}><Sparkles size={18} /></div>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.85)' }}><Globe size={18} /></div>
             </div>
           </div>
         </motion.div>

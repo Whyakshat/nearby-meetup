@@ -19,6 +19,10 @@ import {
 import Settings from './Settings';
 import { AnimatePresence, motion } from 'framer-motion';
 
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5001/api'
+  : 'https://nearby-meetup.onrender.com/api';
+
 const INTEREST_OPTIONS = ['Coffee', 'Design', 'Music', 'Gaming', 'Food', 'Movies', 'Sports', 'Art', 'Tech', 'Fashion'];
 
 const Profile = () => {
@@ -50,15 +54,66 @@ const Profile = () => {
   
   // Local edit state
   const [name, setName] = useState(profileUser?.name || '');
+  const [username, setUsername] = useState(profileUser?.username || '');
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState(true);
+  const [usernameError, setUsernameError] = useState('');
   const [bio, setBio] = useState(profileUser?.bio || '');
   const [interests, setInterests] = useState(profileUser?.interests || []);
   const [avatarUrl, setAvatarUrl] = useState(profileUser?.avatar || '');
 
   const fileInputRef = useRef(null);
+  const prevUsernameRef = useRef(profileUser?.username || '');
+  const checkTimerRef = useRef(null);
+
+  const handleUsernameChange = (val) => {
+    const cleanVal = val.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
+    setUsername(cleanVal);
+    
+    if (cleanVal.length < 3) {
+      setUsernameError('Username must be at least 3 characters');
+      setUsernameAvailable(false);
+      return;
+    }
+
+    setUsernameError('');
+    
+    if (cleanVal === prevUsernameRef.current) {
+      setUsernameAvailable(true);
+      return;
+    }
+
+    setIsCheckingUsername(true);
+
+    if (checkTimerRef.current) {
+      clearTimeout(checkTimerRef.current);
+    }
+
+    checkTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_URL}/users/check-username/${cleanVal}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('vibecheck_token')}`
+          }
+        });
+        const data = await res.json();
+        setUsernameAvailable(data.available);
+        if (!data.available) {
+          setUsernameError(data.message || 'Username is already taken');
+        }
+      } catch (err) {
+        console.error('Error checking username', err);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 400);
+  };
 
   const handleSave = () => {
-    updateProfile({ name, bio, interests, avatar: avatarUrl });
+    if (!usernameAvailable) return;
+    updateProfile({ name, username, bio, interests, avatar: avatarUrl });
     setIsEditing(false);
+    prevUsernameRef.current = username;
   };
 
   const toggleInterest = (interest) => {
@@ -146,7 +201,7 @@ const Profile = () => {
             </button>
           )}
           <span style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
-            {profileUser.email ? profileUser.email.split('@')[0] : 'profile'}
+            {profileUser.username ? `@${profileUser.username}` : (profileUser.email ? profileUser.email.split('@')[0] : 'profile')}
           </span>
         </div>
         {!isPublicView && (
@@ -210,6 +265,28 @@ const Profile = () => {
           {isEditing && !isPublicView ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Username</label>
+                <input 
+                  type="text" 
+                  value={username}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
+                  className="input-field"
+                  style={{ width: '100%', padding: '0.55rem 0.8rem', fontSize: '0.88rem', borderRadius: '8px' }}
+                  placeholder="e.g. akshat_ojha"
+                />
+                {username && (
+                  <div style={{ fontSize: '0.75rem', marginTop: '0.15rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 500 }}>
+                    {isCheckingUsername ? (
+                      <span style={{ color: 'var(--text-secondary)' }}>Checking availability...</span>
+                    ) : usernameAvailable ? (
+                      <span style={{ color: '#34A853' }}>Username is available</span>
+                    ) : (
+                      <span style={{ color: 'var(--danger-color)' }}>{usernameError || 'Username is already taken'}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Display Name</label>
                 <input 
                   type="text" 
@@ -234,6 +311,11 @@ const Profile = () => {
           ) : (
             <>
               <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '0.95rem', fontWeight: 700 }}>{profileUser.name}</h4>
+              {profileUser.username && (
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.45rem', fontWeight: 600 }}>
+                  @{profileUser.username}
+                </div>
+              )}
               {profileUser.gender && (
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'var(--surface-color)', padding: '0.15rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginBottom: '0.35rem' }}>
                   {profileUser.gender}
@@ -290,14 +372,24 @@ const Profile = () => {
               <>
                 <button 
                   onClick={handleSave}
+                  disabled={isCheckingUsername || !usernameAvailable}
                   className="btn btn-primary"
-                  style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600 }}
+                  style={{ 
+                    flex: 1, 
+                    padding: '0.55rem', 
+                    borderRadius: '10px', 
+                    fontSize: '0.88rem', 
+                    fontWeight: 600,
+                    opacity: (isCheckingUsername || !usernameAvailable) ? 0.55 : 1,
+                    cursor: (isCheckingUsername || !usernameAvailable) ? 'not-allowed' : 'pointer'
+                  }}
                 >
                   Save Changes
                 </button>
                 <button 
                   onClick={() => {
                     setName(profileUser.name || '');
+                    setUsername(profileUser.username || '');
                     setBio(profileUser.bio || '');
                     setInterests(profileUser.interests || []);
                     setAvatarUrl(profileUser.avatar || '');

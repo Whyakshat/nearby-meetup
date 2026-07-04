@@ -17,6 +17,10 @@ model User {
   gender       String?
   isPrivate    Boolean  @default(false)
   blockedUsers String   // stored as JSON string of user IDs
+  username     String?  @unique
+  isDisabled   Boolean  @default(false)
+  latitude     Float?
+  longitude    Float?
   createdAt    DateTime @default(now())
 
   // Relations

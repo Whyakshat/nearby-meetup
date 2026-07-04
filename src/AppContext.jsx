@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 
 const AppContext = createContext();
 
@@ -24,6 +24,13 @@ export const AppProvider = ({ children }) => {
   const [broadcasts, setBroadcasts] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [theme, setTheme] = useState(() => localStorage.getItem('heyo_theme') || 'light');
+  
+  const [sessions, setSessions] = useState(() => {
+    const saved = localStorage.getItem('heyo_sessions');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const watchIdRef = useRef(null);
   
   const [location, setLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
@@ -101,25 +108,57 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setLocationError(null);
-    navigator.geolocation.getCurrentPosition(
+
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         setLocation({ lat, lng });
         setLocationError(null);
         reverseGeocode(lat, lng);
+
+        // Update live coordinates on backend if logged in
+        if (token) {
+          fetch(`${API_URL}/users/profile`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ latitude: lat, longitude: lng })
+          }).catch(e => console.warn('Failed to update live coordinates on server', e));
+        }
       },
       () => setLocationError("Location access denied"),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-  }, [reverseGeocode]);
+  }, [reverseGeocode, token]);
 
   // Fetch Location on load
   useEffect(() => {
     if (currentUser) {
       fetchLocation();
     }
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
   }, [currentUser, fetchLocation]);
+
+  const updateSessionsList = useCallback((userSession) => {
+    setSessions(prev => {
+      const filtered = prev.filter(s => s.user.id !== userSession.user.id);
+      const newList = [userSession, ...filtered];
+      localStorage.setItem('heyo_sessions', JSON.stringify(newList));
+      return newList;
+    });
+  }, []);
 
   const signup = async (email, password, gender, name) => {
     try {
@@ -135,6 +174,7 @@ export const AppProvider = ({ children }) => {
         setCurrentUser(data.user);
         localStorage.setItem('vibecheck_token', data.token);
         localStorage.setItem('vibecheck_user', JSON.stringify(data.user));
+        updateSessionsList({ token: data.token, user: data.user });
         return { success: true };
       }
       return { success: false, message: data.message };
@@ -156,6 +196,7 @@ export const AppProvider = ({ children }) => {
         setCurrentUser(data.user);
         localStorage.setItem('vibecheck_token', data.token);
         localStorage.setItem('vibecheck_user', JSON.stringify(data.user));
+        updateSessionsList({ token: data.token, user: data.user });
         return { success: true };
       }
       return { success: false, message: data.message };
@@ -177,6 +218,7 @@ export const AppProvider = ({ children }) => {
         setCurrentUser(data.user);
         localStorage.setItem('vibecheck_token', data.token);
         localStorage.setItem('vibecheck_user', JSON.stringify(data.user));
+        updateSessionsList({ token: data.token, user: data.user });
         return { success: true };
       }
       return { success: false, message: data.message };
@@ -203,12 +245,118 @@ export const AppProvider = ({ children }) => {
   };
 
   const logout = () => {
+    if (!currentUser) return;
+    const remaining = sessions.filter(s => s.user.id !== currentUser.id);
+    setSessions(remaining);
+    localStorage.setItem('heyo_sessions', JSON.stringify(remaining));
+    
+    if (remaining.length > 0) {
+      const nextAcc = remaining[0];
+      setToken(nextAcc.token);
+      setCurrentUser(nextAcc.user);
+      localStorage.setItem('vibecheck_token', nextAcc.token);
+      localStorage.setItem('vibecheck_user', JSON.stringify(nextAcc.user));
+      addNotification(`Switched to ${nextAcc.user.name}`);
+    } else {
+      setCurrentUser(null);
+      setToken(null);
+      setLocation(null);
+      setCityName('');
+      localStorage.removeItem('vibecheck_token');
+      localStorage.removeItem('vibecheck_user');
+    }
+  };
+
+  const switchAccount = (userId) => {
+    const target = sessions.find(s => s.user.id === userId);
+    if (target) {
+      setToken(target.token);
+      setCurrentUser(target.user);
+      localStorage.setItem('vibecheck_token', target.token);
+      localStorage.setItem('vibecheck_user', JSON.stringify(target.user));
+      addNotification(`Switched to ${target.user.name}`);
+    }
+  };
+
+  const addAccount = () => {
     setCurrentUser(null);
     setToken(null);
-    setLocation(null);
-    setCityName('');
     localStorage.removeItem('vibecheck_token');
     localStorage.removeItem('vibecheck_user');
+  };
+
+  const deleteAccount = async () => {
+    try {
+      const res = await fetch(`${API_URL}/users/profile`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const remaining = sessions.filter(s => s.user.id !== currentUser.id);
+        setSessions(remaining);
+        localStorage.setItem('heyo_sessions', JSON.stringify(remaining));
+        
+        if (remaining.length > 0) {
+          const nextAcc = remaining[0];
+          setToken(nextAcc.token);
+          setCurrentUser(nextAcc.user);
+          localStorage.setItem('vibecheck_token', nextAcc.token);
+          localStorage.setItem('vibecheck_user', JSON.stringify(nextAcc.user));
+        } else {
+          setCurrentUser(null);
+          setToken(null);
+          setLocation(null);
+          setCityName('');
+          localStorage.removeItem('vibecheck_token');
+          localStorage.removeItem('vibecheck_user');
+        }
+        addNotification('Account deleted successfully');
+        return { success: true };
+      }
+      return { success: false, message: 'Failed to delete account' };
+    } catch (err) {
+      return { success: false, message: 'Failed to delete account' };
+    }
+  };
+
+  const disableAccount = async () => {
+    try {
+      const res = await fetch(`${API_URL}/users/profile/disable`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const remaining = sessions.filter(s => s.user.id !== currentUser.id);
+        setSessions(remaining);
+        localStorage.setItem('heyo_sessions', JSON.stringify(remaining));
+        
+        if (remaining.length > 0) {
+          const nextAcc = remaining[0];
+          setToken(nextAcc.token);
+          setCurrentUser(nextAcc.user);
+          localStorage.setItem('vibecheck_token', nextAcc.token);
+          localStorage.setItem('vibecheck_user', JSON.stringify(nextAcc.user));
+        } else {
+          setCurrentUser(null);
+          setToken(null);
+          setLocation(null);
+          setCityName('');
+          localStorage.removeItem('vibecheck_token');
+          localStorage.removeItem('vibecheck_user');
+        }
+        addNotification('Account disabled successfully');
+        return { success: true };
+      }
+      return { success: false, message: 'Failed to disable account' };
+    } catch (err) {
+      return { success: false, message: 'Failed to disable account' };
+    }
   };
 
   const updateProfile = async (updates) => {
@@ -219,6 +367,14 @@ export const AppProvider = ({ children }) => {
       });
       setCurrentUser(updatedUser);
       localStorage.setItem('vibecheck_user', JSON.stringify(updatedUser));
+      
+      // Update session in list
+      setSessions(prev => {
+        const newList = prev.map(s => s.user.id === updatedUser.id ? { ...s, user: updatedUser } : s);
+        localStorage.setItem('heyo_sessions', JSON.stringify(newList));
+        return newList;
+      });
+
       addNotification('Profile updated');
     } catch (err) {
       addNotification('Failed to update profile');
@@ -392,6 +548,11 @@ export const AppProvider = ({ children }) => {
       googleLogin,
       forgotPassword,
       logout,
+      sessions,
+      switchAccount,
+      addAccount,
+      deleteAccount,
+      disableAccount,
       updateProfile,
       blockUser,
       unblockUser,

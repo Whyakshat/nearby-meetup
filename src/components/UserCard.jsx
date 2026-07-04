@@ -70,7 +70,7 @@ const UserCard = ({ user, onOpenPosts }) => {
               <CheckCircle2 size={13} color="#60a5fa" fill="white" />
             </span>
             <span style={{ fontSize: '0.72rem', opacity: 0.85, color: 'rgba(255,255,255,0.9)' }}>
-              {user.bio ? user.bio.substring(0, 22) + (user.bio.length > 22 ? '...' : '') : 'New here ✨'}
+              {user.bio ? user.bio.substring(0, 22) + (user.bio.length > 22 ? '...' : '') : 'New here'}
             </span>
           </div>
         </div>
