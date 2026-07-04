@@ -42,7 +42,8 @@ const Profile = () => {
     meetups, 
     sendRequest, 
     respondToRequest,
-    theme
+    theme,
+    addNotification
   } = useAppContext();
   if (!currentUser) return null;
 
@@ -224,6 +225,19 @@ const Profile = () => {
     }
   };
 
+  const handleShareProfile = () => {
+    const profileUrl = `${window.location.origin}/profile/${profileUser.id}`;
+    navigator.clipboard.writeText(profileUrl)
+      .then(() => {
+        if (addNotification) {
+          addNotification('Profile link copied to clipboard!');
+        } else {
+          alert('Link copied to clipboard!');
+        }
+      })
+      .catch(() => {});
+  };
+
   if (!profileUser) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'var(--bg-color)', color: 'var(--text-primary)' }}>
@@ -271,21 +285,36 @@ const Profile = () => {
 
       <div style={{ padding: '1rem' }}>
         {/* Instagram Profile Header Info Grid */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', marginBottom: '1.25rem', marginTop: '0.5rem' }}>
           {/* Avatar on Left */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{ 
+            position: 'relative', 
+            flexShrink: 0,
+            borderRadius: '50%',
+            padding: '3px',
+            background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+          }}>
             <img 
               src={isEditing ? (avatarUrl || profileUser.avatar) : profileUser.avatar} 
               alt={profileUser.name} 
-              style={{ width: '84px', height: '84px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid var(--surface-border)', padding: '3px' }}
+              style={{ 
+                width: '76px', 
+                height: '76px', 
+                borderRadius: '50%', 
+                objectFit: 'cover', 
+                border: '3px solid var(--bg-color)', 
+                background: 'var(--surface-color)',
+                display: 'block'
+              }}
             />
             {isEditing && !isPublicView && (
               <>
                 <button 
                   onClick={() => fileInputRef.current.click()}
-                  style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--text-primary)', color: 'var(--bg-color)', borderRadius: '50%', padding: '0.4rem', display: 'flex', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+                  style={{ position: 'absolute', bottom: '2px', right: '2px', background: 'var(--text-primary)', color: 'var(--bg-color)', borderRadius: '50%', padding: '0.45rem', display: 'flex', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', zIndex: 5 }}
                 >
-                  <Camera size={12} />
+                  <Camera size={11} />
                 </button>
                 <input 
                   type="file" 
@@ -301,16 +330,16 @@ const Profile = () => {
           {/* Stats on Right */}
           <div style={{ display: 'flex', flex: 1, justifyContent: 'space-around', textAlign: 'center' }}>
             <div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{myPosts.length}</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500 }}>posts</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{myPosts.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '0.15rem' }}>posts</div>
             </div>
             <div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{myMeetupsCount}</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500 }}>meetups</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{myMeetupsCount}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '0.15rem' }}>meetups</div>
             </div>
             <div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{myConnectionsCount}</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500 }}>connections</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{myConnectionsCount}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '0.15rem' }}>connections</div>
             </div>
           </div>
         </div>
@@ -375,32 +404,44 @@ const Profile = () => {
             </div>
           ) : (
             <>
-              <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '0.95rem', fontWeight: 700 }}>{profileUser.name}</h4>
+              <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)' }}>{profileUser.name}</h4>
               {profileUser.username && (
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.45rem', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontWeight: 500 }}>
                   @{profileUser.username}
                 </div>
               )}
               {profileUser.gender && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'var(--surface-color)', padding: '0.15rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginBottom: '0.35rem' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', background: 'var(--surface-color)', border: '1px solid var(--surface-border)', padding: '0.15rem 0.5rem', borderRadius: '999px', display: 'inline-block', marginBottom: '0.6rem', fontWeight: 500 }}>
                   {profileUser.gender}
                 </span>
               )}
-              <p style={{ margin: '0 0 1rem 0', fontSize: '0.88rem', lineHeight: 1.4, opacity: 0.95, whiteSpace: 'pre-wrap' }}>
+              <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.88rem', lineHeight: 1.5, opacity: 0.9, whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>
                 {profileUser.bio || "No bio yet."}
               </p>
               
               {isPublicView && vibeScore !== null && (
-                <div className="glass-panel" style={{ padding: '1rem', borderRadius: '14px', marginTop: '0.75rem', border: '1px solid var(--surface-border)', background: 'var(--surface-color)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ 
+                  padding: '1rem', 
+                  borderRadius: '16px', 
+                  marginTop: '0.75rem', 
+                  border: '1px solid rgba(255, 255, 255, 0.1)', 
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)', 
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '0.4rem',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.03)'
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '0.3rem', letterSpacing: '0.5px' }}>
                       <Sparkles size={13} /> AI VIBE MATCH
                     </span>
                     <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--accent-color)' }}>
                       {vibeScore}% Match
                     </span>
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
                     {vibeInsight}
                   </p>
                 </div>
@@ -410,8 +451,8 @@ const Profile = () => {
         </div>
 
         {/* Interests Section */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
             {isEditing && !isPublicView ? (
               INTEREST_OPTIONS.map(interest => (
                 <button 
@@ -435,7 +476,18 @@ const Profile = () => {
             ) : (
               profileUser.interests && profileUser.interests.length > 0 ? (
                 profileUser.interests.map(interest => (
-                  <span key={interest} className="tag-pill" style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
+                  <span 
+                    key={interest} 
+                    style={{ 
+                      fontSize: '0.75rem', 
+                      padding: '0.25rem 0.75rem', 
+                      borderRadius: '999px', 
+                      background: 'var(--surface-color)', 
+                      border: '1px solid var(--surface-border)',
+                      color: 'var(--text-primary)',
+                      fontWeight: 500
+                    }}
+                  >
                     {interest}
                   </span>
                 ))
@@ -486,17 +538,41 @@ const Profile = () => {
               <>
                 <button 
                   onClick={() => setIsEditing(true)}
-                  className="btn btn-secondary"
-                  style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600, border: '1px solid var(--surface-border)' }}
+                  style={{ 
+                    flex: 1, 
+                    padding: '0.6rem', 
+                    borderRadius: '8px', 
+                    fontSize: '0.85rem', 
+                    fontWeight: 600, 
+                    border: '1px solid var(--surface-border)',
+                    background: 'var(--surface-color)', 
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'var(--surface-color)'}
                 >
                   Edit Profile
                 </button>
                 <button 
-                  onClick={() => setIsEditing(true)}
-                  className="btn btn-secondary"
-                  style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600, border: '1px solid var(--surface-border)' }}
+                  onClick={handleShareProfile}
+                  style={{ 
+                    flex: 1, 
+                    padding: '0.6rem', 
+                    borderRadius: '8px', 
+                    fontSize: '0.85rem', 
+                    fontWeight: 600, 
+                    border: '1px solid var(--surface-border)',
+                    background: 'var(--surface-color)', 
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'var(--surface-color)'}
                 >
-                  Edit Details
+                  Share Profile
                 </button>
               </>
             )
