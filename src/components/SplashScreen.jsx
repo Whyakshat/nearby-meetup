@@ -1,14 +1,17 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 const SplashScreen = ({ onComplete }) => {
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   useEffect(() => {
-    // Show the splash screen for 3 seconds, then call onComplete
+    // Show the splash screen for 2 seconds (faster, more premium feel), then call onComplete
     const timer = setTimeout(() => {
-      onComplete();
-    }, 3000);
+      onCompleteRef.current();
+    }, 2000);
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, []);
 
   return (
     <div style={{ height: '100vh', width: '100%', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-color)', zIndex: 99999 }}>

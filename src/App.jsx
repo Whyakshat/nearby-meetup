@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useAppContext } from './AppContext';
 import { Navigation, Inbox as InboxIcon, User, PenSquare } from 'lucide-react';
@@ -15,7 +15,7 @@ import { RequireLocation } from './components/RequireLocation';
 import SplashScreen from './components/SplashScreen';
 import CreatePostModal from './components/CreatePostModal';
 import { AnimatePresence } from 'framer-motion';
-import { useEffect } from 'react';
+
 
 const BottomNav = () => {
   const { requests, currentUser } = useAppContext();
@@ -93,10 +93,10 @@ const AppContent = () => {
     return !sessionStorage.getItem('heyo_splash_shown');
   });
 
-  const handleSplashComplete = () => {
+  const handleSplashComplete = useCallback(() => {
     sessionStorage.setItem('heyo_splash_shown', 'true');
     setShowSplash(false);
-  };
+  }, []);
 
   if (showSplash) {
     return (
