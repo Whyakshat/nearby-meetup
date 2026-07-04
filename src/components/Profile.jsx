@@ -14,7 +14,8 @@ import {
   UserCheck, 
   Clock, 
   LogOut,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import Settings from './Settings';
 import { AnimatePresence, motion } from 'framer-motion';
