@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../db.js';
 import auth from './auth.middleware.js';
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
@@ -121,6 +122,26 @@ router.put('/profile', auth, async (req, res) => {
 // Disable account
 router.put('/profile/disable', auth, async (req, res) => {
   try {
+    const { confirmValue } = req.body;
+    if (!confirmValue) {
+      return res.status(400).json({ message: 'Confirmation value required' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    
+    let isMatch = false;
+    try {
+      isMatch = await bcrypt.compare(confirmValue, user.password);
+    } catch (e) {}
+
+    if (!isMatch && confirmValue.toLowerCase().trim() === user.email.toLowerCase()) {
+      isMatch = true;
+    }
+
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Incorrect password or email confirmation' });
+    }
+
     await prisma.user.update({
       where: { id: req.user.id },
       data: { isDisabled: true }
@@ -135,7 +156,26 @@ router.put('/profile/disable', auth, async (req, res) => {
 // Delete account
 router.delete('/profile', auth, async (req, res) => {
   try {
+    const { confirmValue } = req.body;
+    if (!confirmValue) {
+      return res.status(400).json({ message: 'Confirmation value required' });
+    }
+
     const userId = req.user.id;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    
+    let isMatch = false;
+    try {
+      isMatch = await bcrypt.compare(confirmValue, user.password);
+    } catch (e) {}
+
+    if (!isMatch && confirmValue.toLowerCase().trim() === user.email.toLowerCase()) {
+      isMatch = true;
+    }
+
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Incorrect password or email confirmation' });
+    }
     
     // Manually delete related resources to prevent foreign key errors
     await prisma.post.deleteMany({ where: { authorId: userId } });

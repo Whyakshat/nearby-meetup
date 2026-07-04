@@ -285,15 +285,17 @@ export const AppProvider = ({ children }) => {
     localStorage.removeItem('vibecheck_user');
   };
 
-  const deleteAccount = async () => {
+  const deleteAccount = async (confirmValue) => {
     try {
       const res = await fetch(`${API_URL}/users/profile`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ confirmValue })
       });
+      const data = await res.json();
       if (res.ok) {
         const remaining = sessions.filter(s => s.user.id !== currentUser.id);
         setSessions(remaining);
@@ -316,21 +318,23 @@ export const AppProvider = ({ children }) => {
         addNotification('Account deleted successfully');
         return { success: true };
       }
-      return { success: false, message: 'Failed to delete account' };
+      return { success: false, message: data.message || 'Failed to delete account' };
     } catch (err) {
-      return { success: false, message: 'Failed to delete account' };
+      return { success: false, message: 'Failed to delete account. Please try again.' };
     }
   };
 
-  const disableAccount = async () => {
+  const disableAccount = async (confirmValue) => {
     try {
       const res = await fetch(`${API_URL}/users/profile/disable`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ confirmValue })
       });
+      const data = await res.json();
       if (res.ok) {
         const remaining = sessions.filter(s => s.user.id !== currentUser.id);
         setSessions(remaining);
@@ -353,9 +357,9 @@ export const AppProvider = ({ children }) => {
         addNotification('Account disabled successfully');
         return { success: true };
       }
-      return { success: false, message: 'Failed to disable account' };
+      return { success: false, message: data.message || 'Failed to disable account' };
     } catch (err) {
-      return { success: false, message: 'Failed to disable account' };
+      return { success: false, message: 'Failed to disable account. Please try again.' };
     }
   };
 

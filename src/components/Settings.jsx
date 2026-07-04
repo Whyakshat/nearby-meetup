@@ -32,6 +32,14 @@ const Settings = ({ onClose }) => {
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const [disableConfirmValue, setDisableConfirmValue] = useState('');
+  const [disableError, setDisableError] = useState('');
+  const [disableLoading, setDisableLoading] = useState(false);
+
+  const [deleteConfirmValue, setDeleteConfirmValue] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const archivedPosts = posts.filter(p => p.authorId === currentUser.id && p.isArchived).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   const blockedUsersDetails = currentUser.blockedUsers 
@@ -45,18 +53,40 @@ const Settings = ({ onClose }) => {
   };
 
   const handleDisableAccount = async () => {
-    const res = await disableAccount();
-    if (res.success) {
-      onClose();
-      navigate('/');
+    if (!disableConfirmValue) return;
+    setDisableError('');
+    setDisableLoading(true);
+    try {
+      const res = await disableAccount(disableConfirmValue);
+      if (res.success) {
+        onClose();
+        navigate('/');
+      } else {
+        setDisableError(res.message || 'Verification failed. Incorrect password or email.');
+      }
+    } catch (e) {
+      setDisableError('An error occurred. Please try again.');
+    } finally {
+      setDisableLoading(false);
     }
   };
 
   const handleDeleteAccount = async () => {
-    const res = await deleteAccount();
-    if (res.success) {
-      onClose();
-      navigate('/');
+    if (!deleteConfirmValue) return;
+    setDeleteError('');
+    setDeleteLoading(true);
+    try {
+      const res = await deleteAccount(deleteConfirmValue);
+      if (res.success) {
+        onClose();
+        navigate('/');
+      } else {
+        setDeleteError(res.message || 'Verification failed. Incorrect password or email.');
+      }
+    } catch (e) {
+      setDeleteError('An error occurred. Please try again.');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -72,11 +102,11 @@ const Settings = ({ onClose }) => {
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: '100%', opacity: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--bg-image)', zIndex: 99999, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--bg-image)', zIndex: 99999, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', maxHeight: '100vh', overflow: 'hidden' }}
     >
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--surface-color)', backdropFilter: 'blur(40px)', zIndex: -1 }}></div>
       
-      <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', flex: 1, position: 'relative' }}>
+      <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
         <div style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--surface-border)' }}>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.5rem' }}>
             <ArrowLeft size={24} />
@@ -84,7 +114,7 @@ const Settings = ({ onClose }) => {
           <h2 style={{ margin: '0 0 0 1rem', fontSize: '1.25rem', fontWeight: 500 }}>Settings</h2>
         </div>
 
-        <div style={{ padding: '0 1.5rem 6rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+        <div style={{ padding: '0 1.5rem 10rem 1.5rem', overflowY: 'auto', flex: 1 }}>
         
           {/* Account Settings */}
           <SectionTitle>Account</SectionTitle>
@@ -351,18 +381,58 @@ const Settings = ({ onClose }) => {
       <AnimatePresence>
         {showDisableConfirm && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowDisableConfirm(false)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setShowDisableConfirm(false); setDisableConfirmValue(''); setDisableError(''); }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} />
             <motion.div initial={{ scale: 0.9, y: 15 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 15 }} style={{ width: '100%', maxWidth: '380px', background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '24px', padding: '1.5rem', zIndex: 1, textAlign: 'center', color: 'var(--text-primary)', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
               <div style={{ background: 'rgba(255, 159, 67, 0.1)', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
                 <AlertTriangle size={28} color="#FF9F43" />
               </div>
               <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 700, fontSize: '1.2rem' }}>Disable Account?</h3>
-              <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                Your profile, posts, and meetups will be hidden until you log back in. You can reactivate your account at any time.
+              <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                Your profile, posts, and meetups will be hidden. Confirm with your password (or your full email address if you logged in using Google).
               </p>
+              
+              {disableError && (
+                <div style={{ color: 'var(--danger-color)', background: 'rgba(255, 71, 87, 0.1)', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 500, marginBottom: '1rem' }}>
+                  {disableError}
+                </div>
+              )}
+
+              <input 
+                type="password" 
+                placeholder="Confirm password or Google email" 
+                value={disableConfirmValue} 
+                onChange={e => setDisableConfirmValue(e.target.value)} 
+                disabled={disableLoading}
+                className="input-field" 
+                style={{ width: '100%', marginBottom: '1.25rem', padding: '0.65rem 0.85rem', borderRadius: '12px', fontSize: '0.9rem' }} 
+              />
+
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button onClick={() => setShowDisableConfirm(false)} className="btn btn-secondary" style={{ flex: 1, padding: '0.65rem', borderRadius: '12px' }}>Cancel</button>
-                <button onClick={handleDisableAccount} className="btn btn-accent" style={{ flex: 1, padding: '0.65rem', borderRadius: '12px', background: '#FF9F43', color: 'white', border: 'none' }}>Disable</button>
+                <button 
+                  onClick={() => { setShowDisableConfirm(false); setDisableConfirmValue(''); setDisableError(''); }} 
+                  disabled={disableLoading}
+                  className="btn btn-secondary" 
+                  style={{ flex: 1, padding: '0.65rem', borderRadius: '12px' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleDisableAccount} 
+                  disabled={disableLoading || !disableConfirmValue.trim()}
+                  className="btn btn-accent" 
+                  style={{ 
+                    flex: 1, 
+                    padding: '0.65rem', 
+                    borderRadius: '12px', 
+                    background: '#FF9F43', 
+                    color: 'white', 
+                    border: 'none',
+                    opacity: (disableLoading || !disableConfirmValue.trim()) ? 0.55 : 1,
+                    cursor: (disableLoading || !disableConfirmValue.trim()) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {disableLoading ? 'Checking...' : 'Disable'}
+                </button>
               </div>
             </motion.div>
           </div>
@@ -370,18 +440,58 @@ const Settings = ({ onClose }) => {
 
         {showDeleteConfirm && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowDeleteConfirm(false)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmValue(''); setDeleteError(''); }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} />
             <motion.div initial={{ scale: 0.9, y: 15 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 15 }} style={{ width: '100%', maxWidth: '380px', background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '24px', padding: '1.5rem', zIndex: 1, textAlign: 'center', color: 'var(--text-primary)', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
               <div style={{ background: 'rgba(255, 71, 87, 0.1)', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
                 <AlertTriangle size={28} color="var(--danger-color)" />
               </div>
               <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 700, fontSize: '1.2rem', color: 'var(--danger-color)' }}>Delete Permanently?</h3>
-              <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                This action is irreversible. All your posts, meetups, requests, messages, and profile details will be permanently wiped out.
+              <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                This is irreversible. Confirm with your password (or your full email address if you logged in using Google) to wipe all data.
               </p>
+
+              {deleteError && (
+                <div style={{ color: 'var(--danger-color)', background: 'rgba(255, 71, 87, 0.1)', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 500, marginBottom: '1rem' }}>
+                  {deleteError}
+                </div>
+              )}
+
+              <input 
+                type="password" 
+                placeholder="Confirm password or Google email" 
+                value={deleteConfirmValue} 
+                onChange={e => setDeleteConfirmValue(e.target.value)} 
+                disabled={deleteLoading}
+                className="input-field" 
+                style={{ width: '100%', marginBottom: '1.25rem', padding: '0.65rem 0.85rem', borderRadius: '12px', fontSize: '0.9rem' }} 
+              />
+
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button onClick={() => setShowDeleteConfirm(false)} className="btn btn-secondary" style={{ flex: 1, padding: '0.65rem', borderRadius: '12px' }}>Cancel</button>
-                <button onClick={handleDeleteAccount} className="btn btn-accent" style={{ flex: 1, padding: '0.65rem', borderRadius: '12px', background: 'var(--danger-color)', color: 'white', border: 'none' }}>Delete</button>
+                <button 
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmValue(''); setDeleteError(''); }} 
+                  disabled={deleteLoading}
+                  className="btn btn-secondary" 
+                  style={{ flex: 1, padding: '0.65rem', borderRadius: '12px' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleDeleteAccount} 
+                  disabled={deleteLoading || !deleteConfirmValue.trim()}
+                  className="btn btn-accent" 
+                  style={{ 
+                    flex: 1, 
+                    padding: '0.65rem', 
+                    borderRadius: '12px', 
+                    background: 'var(--danger-color)', 
+                    color: 'white', 
+                    border: 'none',
+                    opacity: (deleteLoading || !deleteConfirmValue.trim()) ? 0.55 : 1,
+                    cursor: (deleteLoading || !deleteConfirmValue.trim()) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {deleteLoading ? 'Wiping...' : 'Delete'}
+                </button>
               </div>
             </motion.div>
           </div>

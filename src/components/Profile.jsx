@@ -52,9 +52,8 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('posts'); // 'posts' or 'archived'
   const [selectedPost, setSelectedPost] = useState(null); // For post detail modal
   
-  // Local edit state
   const [name, setName] = useState(profileUser?.name || '');
-  const [username, setUsername] = useState(profileUser?.username || '');
+  const [username, setUsername] = useState(profileUser?.username || (profileUser?.email ? profileUser.email.split('@')[0] : ''));
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState(true);
   const [usernameError, setUsernameError] = useState('');
@@ -642,31 +641,6 @@ const Profile = () => {
           )
         )}
       </div>
-
-      {!isPublicView && (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem', marginBottom: '1.5rem', padding: '0 1rem' }}>
-          <button 
-            className="btn btn-secondary" 
-            onClick={logout}
-            style={{ 
-              width: '100%', 
-              maxWidth: '350px', 
-              color: 'var(--danger-color)', 
-              borderColor: 'rgba(255, 71, 87, 0.3)', 
-              background: 'rgba(255, 71, 87, 0.05)', 
-              padding: '0.75rem',
-              fontWeight: 600,
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <LogOut size={16} /> Sign Out
-          </button>
-        </div>
-      )}
 
       {/* Post Detail Modal */}
       <AnimatePresence>
