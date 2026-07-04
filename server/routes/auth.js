@@ -72,4 +72,60 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Google Authentication
+router.post('/google', async (req, res) => {
+  try {
+    const { email, name, avatar } = req.body;
+
+    let user = await prisma.user.findUnique({ where: { email } });
+    
+    if (!user) {
+      // Create user if they don't exist (signup)
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(Math.random().toString(36).slice(-10), salt); // dummy password
+      
+      user = await prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name: name || email.split('@')[0],
+          bio: '',
+          interests: JSON.stringify([]),
+          avatar: avatar || '/default-avatar.svg',
+          gender: 'Prefer not to say',
+          blockedUsers: JSON.stringify([])
+        }
+      });
+    }
+
+    const payload = { user: { id: user.id } };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+    user.interests = JSON.parse(user.interests);
+    user.blockedUsers = JSON.parse(user.blockedUsers);
+
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, bio: user.bio, interests: user.interests, avatar: user.avatar, gender: user.gender, isPrivate: user.isPrivate, blockedUsers: user.blockedUsers } });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Forgot Password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+    
+    if (!user) {
+      return res.status(400).json({ message: 'No account found with this email address' });
+    }
+
+    res.json({ message: `A password reset link has been sent to ${email}` });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 export default router;

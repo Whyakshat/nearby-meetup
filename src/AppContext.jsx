@@ -164,6 +164,44 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async (email, name, avatar) => {
+    try {
+      const res = await fetch(`${API_URL}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, avatar })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToken(data.token);
+        setCurrentUser(data.user);
+        localStorage.setItem('vibecheck_token', data.token);
+        localStorage.setItem('vibecheck_user', JSON.stringify(data.user));
+        return { success: true };
+      }
+      return { success: false, message: data.message };
+    } catch (error) {
+      return { success: false, message: 'Server error. Please try again.' };
+    }
+  };
+
+  const forgotPassword = async (email) => {
+    try {
+      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message };
+    } catch (error) {
+      return { success: false, message: 'Server error. Please try again.' };
+    }
+  };
+
   const logout = () => {
     setCurrentUser(null);
     setToken(null);
@@ -351,6 +389,8 @@ export const AppProvider = ({ children }) => {
       cityName,
       signup,
       login,
+      googleLogin,
+      forgotPassword,
       logout,
       updateProfile,
       blockUser,
