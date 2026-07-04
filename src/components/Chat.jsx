@@ -11,6 +11,7 @@ const Chat = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { requests, currentUser, messages, sendMessage, registeredUsers, location } = useAppContext();
+  if (!currentUser) return null;
   const [inputText, setInputText] = useState('');
   const [showLocationMenu, setShowLocationMenu] = useState(false);
   const [showTimerMenu, setShowTimerMenu] = useState(false);

@@ -21,6 +21,7 @@ const Settings = ({ onClose }) => {
     deleteAccount,
     disableAccount
   } = useAppContext();
+  if (!currentUser) return null;
 
   const navigate = useNavigate();
 

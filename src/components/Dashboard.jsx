@@ -25,6 +25,7 @@ const INTEREST_OPTIONS = ['Coffee', 'Design', 'Music', 'Gaming', 'Food', 'Movies
 
 const Dashboard = () => {
   const { cityUsers, currentUser, location, posts, cityName, theme } = useAppContext();
+  if (!currentUser) return null;
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
   const [feedMode, setFeedMode] = useState('people'); // 'people' or 'meetups'

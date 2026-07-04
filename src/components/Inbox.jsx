@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 
 const Inbox = () => {
   const { requests, currentUser, respondToRequest, registeredUsers } = useAppContext();
+  if (!currentUser) return null;
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 

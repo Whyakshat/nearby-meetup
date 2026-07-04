@@ -44,7 +44,8 @@ const Profile = () => {
     respondToRequest,
     theme
   } = useAppContext();
-  
+  if (!currentUser) return null;
+
   const isPublicView = id && id !== currentUser.id;
   const profileUser = isPublicView ? registeredUsers.find(u => u.id === id) : currentUser;
 
