@@ -117,21 +117,35 @@ export const AppProvider = ({ children }) => {
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        setLocation({ lat, lng });
-        setLocationError(null);
-        reverseGeocode(lat, lng);
+        
+        setLocation(prev => {
+          if (prev) {
+            const latDiff = Math.abs(prev.lat - lat);
+            const lngDiff = Math.abs(prev.lng - lng);
+            // 0.0001 degree is approximately 11 meters.
+            // If the change is less than 11 meters, do not trigger updates.
+            if (latDiff < 0.0001 && lngDiff < 0.0001) {
+              return prev;
+            }
+          }
+          
+          setLocationError(null);
+          reverseGeocode(lat, lng);
 
-        // Update live coordinates on backend if logged in
-        if (token) {
-          fetch(`${API_URL}/users/profile`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ latitude: lat, longitude: lng })
-          }).catch(e => console.warn('Failed to update live coordinates on server', e));
-        }
+          // Update live coordinates on backend if logged in
+          if (token) {
+            fetch(`${API_URL}/users/profile`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ latitude: lat, longitude: lng })
+            }).catch(e => console.warn('Failed to update live coordinates on server', e));
+          }
+
+          return { lat, lng };
+        });
       },
       () => setLocationError("Location access denied"),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }

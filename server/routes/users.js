@@ -28,7 +28,8 @@ router.get('/', auth, async (req, res) => {
     // Parse JSON strings
     const mappedUsers = users.map(u => ({
       ...u,
-      interests: JSON.parse(u.interests)
+      interests: JSON.parse(u.interests),
+      location: u.latitude && u.longitude ? { lat: u.latitude, lng: u.longitude } : null
     }));
 
     res.json(mappedUsers);

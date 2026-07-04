@@ -15,8 +15,16 @@ L.Icon.Default.mergeOptions({
 // Component to dynamically update map center
 const MapUpdater = ({ center }) => {
   const map = useMap();
+  const prevCenterRef = React.useRef(null);
+  
   useEffect(() => {
-    if (center) map.setView(center, map.getZoom());
+    if (!center) return;
+    const [lat, lng] = center;
+    if (prevCenterRef.current && prevCenterRef.current[0] === lat && prevCenterRef.current[1] === lng) {
+      return;
+    }
+    prevCenterRef.current = center;
+    map.setView(center, map.getZoom());
   }, [center, map]);
   return null;
 };
