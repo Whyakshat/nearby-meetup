@@ -205,12 +205,29 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const googleLogin = async (email, name, avatar) => {
+  const sendGoogleOtp = async (email) => {
     try {
-      const res = await fetch(`${API_URL}/auth/google`, {
+      const res = await fetch(`${API_URL}/auth/google/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, avatar })
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        return { success: true, needsPasswordLink: data.needsPasswordLink };
+      }
+      return { success: false, message: data.message };
+    } catch (error) {
+      return { success: false, message: 'Server error. Please try again.' };
+    }
+  };
+
+  const googleLogin = async (email, name, avatar, otp, password) => {
+    try {
+      const res = await fetch(`${API_URL}/auth/google/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, avatar, otp, password })
       });
       const data = await res.json();
       if (res.ok) {
@@ -561,6 +578,7 @@ export const AppProvider = ({ children }) => {
       cityName,
       signup,
       login,
+      sendGoogleOtp,
       googleLogin,
       forgotPassword,
       logout,

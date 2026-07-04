@@ -91,34 +91,97 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Google Authentication
-router.post('/google', async (req, res) => {
-  try {
-    const { email, name, avatar } = req.body;
+const googleOtps = new Map();
 
-    let user = await prisma.user.findUnique({ where: { email } });
-    
-    if (user && user.isDisabled) {
-      return res.status(400).json({ message: 'Account is disabled. Please contact support.' });
+// Send Google OTP
+router.post('/google/send-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
     }
 
-    if (!user) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+    // If user exists and is a password user, they must enter their password to link
+    const needsPasswordLink = user ? !user.isGoogleAuth : false;
+
+    // Generate a random 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    googleOtps.set(normalizedEmail, {
+      code: otp,
+      expires: Date.now() + 5 * 60 * 1000
+    });
+
+    console.log(`\n==============================================`);
+    console.log(`[Google Auth OTP] Code for ${normalizedEmail}: ${otp}`);
+    console.log(`==============================================\n`);
+
+    res.json({ message: 'Verification code sent.', needsPasswordLink });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Verify Google OTP
+router.post('/google/verify-otp', async (req, res) => {
+  try {
+    const { email, otp, name, avatar, password } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Email and verification code are required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const cached = googleOtps.get(normalizedEmail);
+    if (!cached || cached.expires < Date.now() || cached.code !== otp) {
+      return res.status(400).json({ message: 'Invalid or expired verification code' });
+    }
+
+    googleOtps.delete(normalizedEmail);
+
+    let user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+    if (user) {
+      if (user.isDisabled) {
+        return res.status(400).json({ message: 'Account is disabled. Please contact support.' });
+      }
+
+      // If user exists and requires password verification
+      if (!user.isGoogleAuth) {
+        if (!password) {
+          return res.status(400).json({ message: 'This email is registered with password. Please enter password to link.' });
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          return res.status(400).json({ message: 'Incorrect password for this account.' });
+        }
+        
+        // Link to google login
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { isGoogleAuth: true }
+        });
+      }
+    } else {
       // Create user if they don't exist (signup)
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(Math.random().toString(36).slice(-10), salt); // dummy password
-      const uniqueUsername = await generateUniqueUsername(email);
+      const uniqueUsername = await generateUniqueUsername(normalizedEmail);
       
       user = await prisma.user.create({
         data: {
-          email,
+          email: normalizedEmail,
           password: hashedPassword,
-          name: name || email.split('@')[0],
+          name: name || normalizedEmail.split('@')[0],
           username: uniqueUsername,
           bio: '',
           interests: JSON.stringify([]),
           avatar: avatar || '/default-avatar.svg',
           gender: 'Prefer not to say',
-          blockedUsers: JSON.stringify([])
+          blockedUsers: JSON.stringify([]),
+          isGoogleAuth: true
         }
       });
     }

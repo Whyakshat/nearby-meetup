@@ -4,35 +4,29 @@ import { X, User, LogIn, ArrowRight } from 'lucide-react';
 import { useAppContext } from '../AppContext';
 
 const GoogleAuthModal = ({ onClose, onAuthSuccess }) => {
-  const { registeredUsers, googleLogin } = useAppContext();
+  const { sessions, switchAccount, sendGoogleOtp, googleLogin } = useAppContext();
   const [customEmail, setCustomEmail] = useState('');
   const [customName, setCustomName] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Filter out any default/test users to show in chooser list
-  const sampleUsers = registeredUsers.slice(0, 3);
+  // OTP and Verification States
+  const [showOtpScreen, setShowOtpScreen] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [needsPasswordLink, setNeedsPasswordLink] = useState(false);
+  const [linkPassword, setLinkPassword] = useState('');
 
-  const handleSelectUser = async (email, name, avatar) => {
-    setError('');
-    setLoading(true);
-    try {
-      const result = await googleLogin(email, name, avatar);
-      if (result.success) {
-        onAuthSuccess();
-        onClose();
-      } else {
-        setError(result.message || 'Google authentication failed.');
-      }
-    } catch (err) {
-      setError('Google Sign-In failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  // Only show active sessions stored locally on this device
+  const sampleUsers = sessions.map(s => s.user);
+
+  const handleSelectUser = (userId) => {
+    switchAccount(userId);
+    onAuthSuccess();
+    onClose();
   };
 
-  const handleCustomSubmit = async (e) => {
+  const handleRequestOtp = async (e) => {
     e.preventDefault();
     if (!customEmail.trim()) {
       setError('Please enter your email.');
@@ -44,10 +38,59 @@ const GoogleAuthModal = ({ onClose, onAuthSuccess }) => {
       return;
     }
 
-    const displayName = customName.trim() || customEmail.split('@')[0];
-    const dummyAvatar = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`;
+    setError('');
+    setLoading(true);
+    try {
+      const result = await sendGoogleOtp(customEmail.trim().toLowerCase());
+      if (result.success) {
+        setShowOtpScreen(true);
+        setNeedsPasswordLink(result.needsPasswordLink);
+      } else {
+        setError(result.message || 'Failed to send verification code.');
+      }
+    } catch (err) {
+      setError('Connection error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    await handleSelectUser(customEmail.trim().toLowerCase(), displayName, dummyAvatar);
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!otpCode.trim()) {
+      setError('Please enter verification code.');
+      return;
+    }
+    if (needsPasswordLink && !linkPassword.trim()) {
+      setError('Please enter your account password.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+    try {
+      const displayName = customName.trim() || customEmail.split('@')[0];
+      const dummyAvatar = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`;
+      
+      const result = await googleLogin(
+        customEmail.trim().toLowerCase(),
+        displayName,
+        dummyAvatar,
+        otpCode.trim(),
+        linkPassword
+      );
+      
+      if (result.success) {
+        onAuthSuccess();
+        onClose();
+      } else {
+        setError(result.message || 'Google verification failed.');
+      }
+    } catch (err) {
+      setError('Connection error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -116,12 +159,12 @@ const GoogleAuthModal = ({ onClose, onAuthSuccess }) => {
             >
               <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Choose an account to continue to Heyo</p>
               
-              {sampleUsers.length > 0 && (
+              {sampleUsers.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {sampleUsers.map(user => (
                     <button
                       key={user.id}
-                      onClick={() => handleSelectUser(user.email, user.name, user.avatar)}
+                      onClick={() => handleSelectUser(user.id)}
                       disabled={loading}
                       style={{
                         display: 'flex',
@@ -149,6 +192,10 @@ const GoogleAuthModal = ({ onClose, onAuthSuccess }) => {
                     </button>
                   ))}
                 </div>
+              ) : (
+                <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)', background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '16px', fontSize: '0.85rem' }}>
+                  No active local sessions found on this device.
+                </div>
               )}
 
               <button
@@ -174,10 +221,10 @@ const GoogleAuthModal = ({ onClose, onAuthSuccess }) => {
                 Use another account
               </button>
             </motion.div>
-          ) : (
+          ) : !showOtpScreen ? (
             <motion.form
               key="custom-form"
-              onSubmit={handleCustomSubmit}
+              onSubmit={handleRequestOtp}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
@@ -228,7 +275,74 @@ const GoogleAuthModal = ({ onClose, onAuthSuccess }) => {
                   className="btn btn-accent"
                   style={{ flex: 1, padding: '0.75rem', borderRadius: '14px', fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
                 >
-                  Continue <ArrowRight size={14} />
+                  {loading ? 'Sending...' : 'Send Code'} <ArrowRight size={14} />
+                </button>
+              </div>
+            </motion.form>
+          ) : (
+            <motion.form
+              key="otp-form"
+              onSubmit={handleVerifyOtp}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
+              <div style={{ background: 'rgba(0, 122, 255, 0.08)', border: '1px solid rgba(0, 122, 255, 0.2)', padding: '0.85rem', borderRadius: '12px', fontSize: '0.8rem', lineHeight: 1.45, color: 'var(--text-secondary)' }}>
+                Verification code for <strong>{customEmail}</strong> has been printed to the server terminal console. Please copy and enter it below.
+              </div>
+
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.8rem' }}>Verification Code</label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  className="input-field"
+                  placeholder="Enter 6-digit OTP"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  required
+                  disabled={loading}
+                  style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '1.2rem', letterSpacing: '4px', fontWeight: 700 }}
+                />
+              </div>
+
+              {needsPasswordLink && (
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <div style={{ background: 'rgba(255, 159, 67, 0.1)', color: '#FF9F43', padding: '0.65rem 0.85rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 500, lineHeight: 1.4, marginBottom: '0.5rem' }}>
+                    This email is already registered with password credentials. Enter your account password to verify and link with Google login.
+                  </div>
+                  <label style={{ fontSize: '0.8rem' }}>Account Password</label>
+                  <input
+                    type="password"
+                    className="input-field"
+                    placeholder="••••••••"
+                    value={linkPassword}
+                    onChange={(e) => setLinkPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                    style={{ padding: '0.75rem 1rem' }}
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowOtpScreen(false); setOtpCode(''); setNeedsPasswordLink(false); setLinkPassword(''); }}
+                  disabled={loading}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, padding: '0.75rem', borderRadius: '14px', fontSize: '0.88rem' }}
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn btn-accent"
+                  style={{ flex: 1, padding: '0.75rem', borderRadius: '14px', fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+                >
+                  {loading ? 'Verifying...' : 'Verify & Login'} <ArrowRight size={14} />
                 </button>
               </div>
             </motion.form>

@@ -19,6 +19,7 @@ model User {
   blockedUsers String   // stored as JSON string of user IDs
   username     String?  @unique
   isDisabled   Boolean  @default(false)
+  isGoogleAuth Boolean  @default(false)
   latitude     Float?
   longitude    Float?
   createdAt    DateTime @default(now())
