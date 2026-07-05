@@ -21,7 +21,7 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
 const Chat = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { requests, currentUser, messages, sendMessage, registeredUsers, location } = useAppContext();
+  const { requests, currentUser, messages, sendMessage, registeredUsers, location, respondToRequest } = useAppContext();
   const [inputText, setInputText] = useState('');
   const [showLocationMenu, setShowLocationMenu] = useState(false);
   const [showTimerMenu, setShowTimerMenu] = useState(false);
@@ -39,6 +39,8 @@ const Chat = () => {
   const otherUser = request && currentUser ? (registeredUsers?.find(u => u.id === otherUserId) || (request.from.id === currentUser.id ? request.to : request.from)) : null;
 
   const chatMessages = messages.filter(m => m.requestId === id);
+  const isPending = request?.status === 'pending';
+  const isReceived = request?.to?.id === currentUser.id;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -72,7 +74,7 @@ const Chat = () => {
 
   if (!currentUser) return null;
 
-  if (!request || request.status !== 'accepted') {
+  if (!request || (request.status !== 'accepted' && request.status !== 'pending')) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
         <p style={{ color: 'var(--text-secondary)' }}>Chat not found or request not accepted.</p>
@@ -219,7 +221,7 @@ const Chat = () => {
       </div>
 
       {/* AI Icebreakers Panel */}
-      {showIcebreakers && icebreakers.length > 0 && (
+      {!isPending && showIcebreakers && icebreakers.length > 0 && (
         <div style={{ 
           background: 'var(--surface-color)', 
           borderBottom: '1px solid var(--surface-border)', 
@@ -269,7 +271,26 @@ const Chat = () => {
 
       {/* Messages Area */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '90px' }}>
-        {chatMessages.length === 0 ? (
+        {isPending ? (
+          <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', padding: '0 1.5rem' }}>
+            <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'var(--surface-color)', border: '2px solid var(--surface-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', overflow: 'hidden' }}>
+              <img src={otherUser.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+              {otherUser.name}
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.88rem', opacity: 0.8, lineHeight: 1.5 }}>
+              {isReceived ? (
+                `wants to connect with you to "${request.activity}".`
+              ) : (
+                `You sent a request to connect to "${request.activity}".`
+              )}
+            </p>
+            <p style={{ margin: 0, fontSize: '0.78rem', opacity: 0.6 }}>
+              {isReceived ? 'Respond below to start chatting!' : 'Waiting for their response.'}
+            </p>
+          </div>
+        ) : chatMessages.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
             <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--surface-color)', border: '1px solid var(--surface-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }}>
               <img src={otherUser.avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
@@ -319,72 +340,152 @@ const Chat = () => {
         borderTop: '1px solid var(--surface-border)',
         zIndex: 10
       }}>
-        {/* Location Menu Modal */}
-        {showLocationMenu && (
-          <div style={{ position: 'absolute', bottom: '100%', left: '1rem', background: 'var(--surface-color)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid var(--surface-border)', borderRadius: '16px', padding: '0.5rem', marginBottom: '0.5rem', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: '200px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0.5rem', borderBottom: '1px solid var(--surface-border)', marginBottom: '0.25rem' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>Share Location</span>
-              <button onClick={() => { setShowLocationMenu(false); setShowTimerMenu(false); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex' }}><X size={14}/></button>
+        {isPending ? (
+          isReceived ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              padding: '0.5rem 0',
+              maxWidth: '600px',
+              margin: '0 auto',
+            }}>
+              <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+                <button
+                  onClick={() => respondToRequest(request.id, 'accepted')}
+                  style={{
+                    flex: 1,
+                    background: '#007AFF', // Apple Blue
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.75rem',
+                    borderRadius: '12px',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0, 122, 255, 0.25)',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem'
+                  }}
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => {
+                    respondToRequest(request.id, 'declined');
+                    navigate('/inbox');
+                  }}
+                  style={{
+                    flex: 1,
+                    background: 'var(--bg-color)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--surface-border)',
+                    padding: '0.75rem',
+                    borderRadius: '12px',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem'
+                  }}
+                >
+                  Decline
+                </button>
+              </div>
             </div>
-            
-            {!showTimerMenu ? (
-              <>
-                <button 
-                  onClick={() => handleSendLocation('location_static')}
-                  style={{ background: 'transparent', border: 'none', padding: '0.75rem', textAlign: 'left', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', fontSize: '0.9rem' }}
-                >
-                  <MapPin size={15} /> Current Location
-                </button>
-                <button 
-                  onClick={() => setShowTimerMenu(true)}
-                  style={{ background: 'transparent', border: 'none', padding: '0.75rem', textAlign: 'left', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-color)', fontSize: '0.9rem', fontWeight: 500 }}
-                >
-                  <MapPin size={15} /> Live Location...
-                </button>
-              </>
-            ) : (
-              <>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', padding: '0 0.5rem', marginBottom: '0.25rem' }}>Share for how long?</p>
-                {[{ label: '15 minutes', val: 15 }, { label: '1 hour', val: 60 }, { label: '8 hours', val: 480 }].map(({ label, val }) => (
-                  <button 
-                    key={val}
-                    onClick={() => handleSendLocation('location_live', val)}
-                    style={{ background: 'transparent', border: 'none', padding: '0.75rem', textAlign: 'left', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '0.9rem' }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </>
+          ) : (
+            <div style={{
+              textAlign: 'center',
+              padding: '0.75rem',
+              maxWidth: '600px',
+              margin: '0 auto',
+              color: 'var(--text-secondary)',
+              fontSize: '0.88rem',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem'
+            }}>
+              <span style={{ display: 'inline-flex', opacity: 0.7 }}>⏳</span> Waiting for {otherUser?.name?.split(' ')[0] || 'them'} to accept your request.
+            </div>
+          )
+        ) : (
+          <>
+            {/* Location Menu Modal */}
+            {showLocationMenu && (
+              <div style={{ position: 'absolute', bottom: '100%', left: '1rem', background: 'var(--surface-color)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid var(--surface-border)', borderRadius: '16px', padding: '0.5rem', marginBottom: '0.5rem', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: '200px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0.5rem', borderBottom: '1px solid var(--surface-border)', marginBottom: '0.25rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>Share Location</span>
+                  <button onClick={() => { setShowLocationMenu(false); setShowTimerMenu(false); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex' }}><X size={14}/></button>
+                </div>
+                
+                {!showTimerMenu ? (
+                  <>
+                    <button 
+                      onClick={() => handleSendLocation('location_static')}
+                      style={{ background: 'transparent', border: 'none', padding: '0.75rem', textAlign: 'left', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                    >
+                      <MapPin size={15} /> Current Location
+                    </button>
+                    <button 
+                      onClick={() => setShowTimerMenu(true)}
+                      style={{ background: 'transparent', border: 'none', padding: '0.75rem', textAlign: 'left', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-color)', fontSize: '0.9rem', fontWeight: 500 }}
+                    >
+                      <MapPin size={15} /> Live Location...
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', padding: '0 0.5rem', marginBottom: '0.25rem' }}>Share for how long?</p>
+                    {[{ label: '15 minutes', val: 15 }, { label: '1 hour', val: 60 }, { label: '8 hours', val: 480 }].map(({ label, val }) => (
+                      <button 
+                        key={val}
+                        onClick={() => handleSendLocation('location_live', val)}
+                        style={{ background: 'transparent', border: 'none', padding: '0.75rem', textAlign: 'left', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
             )}
-          </div>
+
+            <form onSubmit={handleSend} style={{ display: 'flex', gap: '0.5rem', maxWidth: '600px', margin: '0 auto', alignItems: 'center' }}>
+              <button 
+                type="button"
+                onClick={() => { setShowLocationMenu(!showLocationMenu); setShowTimerMenu(false); }}
+                className="btn btn-glass"
+                style={{ borderRadius: '50%', width: '42px', height: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: showLocationMenu ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }}
+              >
+                <MapPin size={18} />
+              </button>
+
+              <input 
+                type="text" 
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Type a message..."
+                className="input-field"
+                style={{ flex: 1, borderRadius: '999px', padding: '0.75rem 1.25rem' }}
+              />
+              <button 
+                type="submit" 
+                disabled={!inputText.trim()}
+                style={{ borderRadius: '50%', width: '44px', height: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: inputText.trim() ? 'var(--primary-color)' : 'var(--surface-color)', border: '1px solid var(--surface-border)', cursor: inputText.trim() ? 'pointer' : 'default', transition: 'all 0.2s', flexShrink: 0 }}
+              >
+                <Send size={18} color={inputText.trim() ? 'var(--bg-color)' : 'var(--text-secondary)'} />
+              </button>
+            </form>
+          </>
         )}
-
-        <form onSubmit={handleSend} style={{ display: 'flex', gap: '0.5rem', maxWidth: '600px', margin: '0 auto', alignItems: 'center' }}>
-          <button 
-            type="button"
-            onClick={() => { setShowLocationMenu(!showLocationMenu); setShowTimerMenu(false); }}
-            className="btn btn-glass"
-            style={{ borderRadius: '50%', width: '42px', height: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: showLocationMenu ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }}
-          >
-            <MapPin size={18} />
-          </button>
-
-          <input 
-            type="text" 
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type a message..."
-            className="input-field"
-            style={{ flex: 1, borderRadius: '999px', padding: '0.75rem 1.25rem' }}
-          />
-          <button 
-            type="submit" 
-            disabled={!inputText.trim()}
-            style={{ borderRadius: '50%', width: '44px', height: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: inputText.trim() ? 'var(--primary-color)' : 'var(--surface-color)', border: '1px solid var(--surface-border)', cursor: inputText.trim() ? 'pointer' : 'default', transition: 'all 0.2s', flexShrink: 0 }}
-          >
-            <Send size={18} color={inputText.trim() ? 'var(--bg-color)' : 'var(--text-secondary)'} />
-          </button>
-        </form>
       </div>
     </div>
   );

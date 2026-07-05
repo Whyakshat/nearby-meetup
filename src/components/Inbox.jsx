@@ -140,13 +140,13 @@ const Inbox = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.3) }}
                 onClick={() => {
-                  if (msg.status === 'accepted') navigate(`/chat/${msg.id}`);
+                  if (msg.status === 'accepted' || msg.status === 'pending') navigate(`/chat/${msg.id}`);
                 }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   padding: '0.85rem 1.25rem',
-                  cursor: msg.status === 'accepted' ? 'pointer' : 'default',
+                  cursor: (msg.status === 'accepted' || msg.status === 'pending') ? 'pointer' : 'default',
                   background: 'transparent',
                   position: 'relative',
                   overflow: 'hidden'
