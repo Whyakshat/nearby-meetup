@@ -21,11 +21,9 @@ const Settings = ({ onClose }) => {
     deleteAccount,
     disableAccount
   } = useAppContext();
-  if (!currentUser) return null;
-
   const navigate = useNavigate();
 
-  const [isPrivate, setIsPrivate] = useState(currentUser.isPrivate || false);
+  const [isPrivate, setIsPrivate] = useState(currentUser?.isPrivate || false);
   const [showBlocked, setShowBlocked] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   
@@ -40,6 +38,8 @@ const Settings = ({ onClose }) => {
   const [deleteConfirmValue, setDeleteConfirmValue] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  if (!currentUser) return null;
 
   const archivedPosts = posts.filter(p => p.authorId === currentUser.id && p.isArchived).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 

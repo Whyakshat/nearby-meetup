@@ -6,9 +6,10 @@ import { motion } from 'framer-motion';
 
 const Inbox = () => {
   const { requests, currentUser, respondToRequest, registeredUsers, messages } = useAppContext();
-  if (!currentUser) return null;
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+
+  if (!currentUser) return null;
 
   const getFreshUser = (userId) => {
     return registeredUsers.find(u => u.id === userId) || { name: 'Unknown User', avatar: '/default-avatar.svg', username: '' };

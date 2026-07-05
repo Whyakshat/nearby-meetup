@@ -46,10 +46,8 @@ const Profile = () => {
     theme,
     addNotification
   } = useAppContext();
-  if (!currentUser) return null;
-
-  const isPublicView = id && id !== currentUser.id;
-  const profileUser = isPublicView ? registeredUsers.find(u => u.id === id) : currentUser;
+  const isPublicView = id && currentUser && id !== currentUser.id;
+  const profileUser = isPublicView ? (registeredUsers?.find(u => u.id === id) || null) : (currentUser || null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -100,6 +98,8 @@ const Profile = () => {
 
     fetchVibeScore();
   }, [profileUser?.id, isPublicView]);
+
+  if (!currentUser) return null;
 
   const handleUsernameChange = (val) => {
     const cleanVal = val.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);

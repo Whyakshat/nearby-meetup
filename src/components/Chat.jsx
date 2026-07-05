@@ -22,7 +22,6 @@ const Chat = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { requests, currentUser, messages, sendMessage, registeredUsers, location } = useAppContext();
-  if (!currentUser) return null;
   const [inputText, setInputText] = useState('');
   const [showLocationMenu, setShowLocationMenu] = useState(false);
   const [showTimerMenu, setShowTimerMenu] = useState(false);
@@ -36,8 +35,8 @@ const Chat = () => {
 
   const request = requests.find(r => r.id === id);
   
-  const otherUserId = request ? (request.from.id === currentUser.id ? request.to.id : request.from.id) : null;
-  const otherUser = request ? (registeredUsers?.find(u => u.id === otherUserId) || (request.from.id === currentUser.id ? request.to : request.from)) : null;
+  const otherUserId = request && currentUser ? (request.from.id === currentUser.id ? request.to.id : request.from.id) : null;
+  const otherUser = request && currentUser ? (registeredUsers?.find(u => u.id === otherUserId) || (request.from.id === currentUser.id ? request.to : request.from)) : null;
 
   const chatMessages = messages.filter(m => m.requestId === id);
 
@@ -70,6 +69,8 @@ const Chat = () => {
 
     fetchIcebreakers();
   }, [otherUser?.id]);
+
+  if (!currentUser) return null;
 
   if (!request || request.status !== 'accepted') {
     return (
