@@ -151,8 +151,8 @@ const UserCard = ({ user, onOpenPosts }) => {
             type="submit"
             disabled={!customMsg.trim() || hasPendingRequest}
             style={{ 
-              background: hasPendingRequest ? 'rgba(255,255,255,0.2)' : 'var(--accent-gradient)', 
-              color: 'white', 
+              background: hasPendingRequest ? 'rgba(255,255,255,0.2)' : 'white', 
+              color: hasPendingRequest ? 'rgba(255,255,255,0.6)' : '#000000', 
               border: 'none', 
               borderRadius: '999px', 
               padding: '0.6rem 1.25rem', 

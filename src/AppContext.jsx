@@ -123,26 +123,27 @@ export const AppProvider = ({ children }) => {
             const latDiff = Math.abs(prev.lat - lat);
             const lngDiff = Math.abs(prev.lng - lng);
             // 0.0001 degree is approximately 11 meters.
-            // If the change is less than 11 meters, do not trigger updates.
             if (latDiff < 0.0001 && lngDiff < 0.0001) {
               return prev;
             }
           }
           
-          setLocationError(null);
-          reverseGeocode(lat, lng);
+          // Trigger side-effects asynchronously outside the React state updater
+          Promise.resolve().then(() => {
+            setLocationError(null);
+            reverseGeocode(lat, lng);
 
-          // Update live coordinates on backend if logged in
-          if (token) {
-            fetch(`${API_URL}/users/profile`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ latitude: lat, longitude: lng })
-            }).catch(e => console.warn('Failed to update live coordinates on server', e));
-          }
+            if (token) {
+              fetch(`${API_URL}/users/profile`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ latitude: lat, longitude: lng })
+              }).catch(e => console.warn('Failed to update live coordinates on server', e));
+            }
+          });
 
           return { lat, lng };
         });
@@ -164,6 +165,32 @@ export const AppProvider = ({ children }) => {
       }
     };
   }, [currentUser, fetchLocation]);
+
+  // Poll for messages, requests, users, posts and meetups every 4 seconds when logged in
+  useEffect(() => {
+    if (!token) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const [msgsData, reqsData, usersData, postsData, meetupsData] = await Promise.all([
+          authFetch('/messages'),
+          authFetch('/requests'),
+          authFetch('/users'),
+          authFetch('/posts'),
+          authFetch('/meetups')
+        ]);
+        if (msgsData) setMessages(msgsData);
+        if (reqsData) setRequests(reqsData);
+        if (usersData) setRegisteredUsers(usersData);
+        if (postsData) setPosts(postsData);
+        if (meetupsData) setMeetups(meetupsData);
+      } catch (err) {
+        console.warn('Failed to poll updates:', err);
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [token, authFetch]);
 
   const updateSessionsList = useCallback((userSession) => {
     setSessions(prev => {
@@ -264,6 +291,23 @@ export const AppProvider = ({ children }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message };
+    } catch (error) {
+      return { success: false, message: 'Server error. Please try again.' };
+    }
+  };
+
+  const resetPassword = async (token, password) => {
+    try {
+      const res = await fetch(`${API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password })
       });
       const data = await res.json();
       if (res.ok) {
@@ -595,6 +639,7 @@ export const AppProvider = ({ children }) => {
       sendGoogleOtp,
       googleLogin,
       forgotPassword,
+      resetPassword,
       logout,
       sessions,
       switchAccount,

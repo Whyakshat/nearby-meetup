@@ -111,7 +111,6 @@ const CreatePostModal = ({ onClose }) => {
               value={postText}
               onChange={(e) => setPostText(e.target.value)}
               placeholder="What's happening nearby?"
-              autoFocus
               style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '1.1rem', resize: 'none', minHeight: '80px', outline: 'none', padding: '0.25rem 0' }}
             />
           </div>

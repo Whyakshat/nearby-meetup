@@ -2,8 +2,11 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../db.js';
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 
 const router = express.Router();
+const resetTokens = new Map();
 
 async function generateUniqueUsername(email) {
   let baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
@@ -209,7 +212,90 @@ router.post('/forgot-password', async (req, res) => {
       return res.status(400).json({ message: 'No account found with this email address' });
     }
 
-    res.json({ message: `A password reset link has been sent to ${email}` });
+    // Generate reset token
+    const token = crypto.randomBytes(32).toString('hex');
+    
+    // Store in-memory map with 15 minutes expiration
+    resetTokens.set(token, {
+      email: user.email,
+      expires: Date.now() + 15 * 60 * 1000
+    });
+
+    const origin = req.headers.origin || 'http://localhost:5173';
+    const resetLink = `${origin}/reset-password?token=${token}`;
+
+    let emailSent = false;
+    let infoMsg = `A password reset link has been sent to ${email} (Simulated: check server console logs)`;
+
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+
+        await transporter.sendMail({
+          from: `"Heyo App" <${process.env.SMTP_USER}>`,
+          to: email,
+          subject: 'Reset Password - Heyo',
+          text: `You requested a password reset. Click this link to reset your password: ${resetLink}\n\nThis link is valid for 15 minutes.`,
+          html: `<p>You requested a password reset.</p>
+                 <p>Click the link below to reset your password:</p>
+                 <p><a href="${resetLink}">${resetLink}</a></p>
+                 <p>This link is valid for 15 minutes.</p>`,
+        });
+        emailSent = true;
+        infoMsg = `A password reset link has been sent to your email address ${email}.`;
+      } catch (mailErr) {
+        console.error('Failed to send real email via Nodemailer:', mailErr.message);
+      }
+    }
+
+    if (!emailSent) {
+      console.log(`\n==============================================`);
+      console.log(`[Password Reset Link] URL: ${resetLink}`);
+      console.log(`==============================================\n`);
+    }
+
+    res.json({ message: infoMsg });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Reset Password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token and password are required' });
+    }
+
+    const cached = resetTokens.get(token);
+    if (!cached || cached.expires < Date.now()) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update user password
+    await prisma.user.update({
+      where: { email: cached.email },
+      data: { password: hashedPassword }
+    });
+
+    // Delete token
+    resetTokens.delete(token);
+
+    res.json({ message: 'Password has been reset successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

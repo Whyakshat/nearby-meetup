@@ -2,6 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
 import { ArrowLeft, Send, MapPin, X, Sparkles } from 'lucide-react';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix leaflet icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:5001/api'
@@ -113,7 +124,7 @@ const Chat = () => {
         <div 
           onClick={() => window.open(mapUrl, '_blank')}
           style={{ 
-            width: '200px', 
+            width: '240px', 
             borderRadius: '16px', 
             overflow: 'hidden', 
             cursor: 'pointer', 
@@ -139,12 +150,30 @@ const Chat = () => {
             <MapPin size={13} /> 
             {msg.type === 'location_static' ? 'Current Location' : (isLiveActive ? '🔴 Live Location' : 'Live Location (Ended)')}
           </div>
-          <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontSize: '0.72rem', opacity: 0.7, color: 'var(--text-primary)' }}>
-              Coordinates: {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
+          
+          {/* Map Preview */}
+          <div style={{ height: '140px', width: '100%', position: 'relative', pointerEvents: 'none', zIndex: 1 }}>
+            <MapContainer 
+              center={[loc.lat, loc.lng]} 
+              zoom={14} 
+              zoomControl={false}
+              dragging={false}
+              touchZoom={false}
+              doubleClickZoom={false}
+              scrollWheelZoom={false}
+              style={{ height: '100%', width: '100%' }}
+            >
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <Marker position={[loc.lat, loc.lng]} />
+            </MapContainer>
+          </div>
+
+          <div style={{ padding: '0.6rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', background: 'rgba(0,0,0,0.02)' }}>
+            <span style={{ opacity: 0.7, color: 'var(--text-primary)' }}>
+              {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
             </span>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-color)' }}>
-              Tap to View Map
+            <span style={{ fontWeight: 600, color: 'var(--accent-color)' }}>
+              View Map
             </span>
           </div>
         </div>
@@ -350,9 +379,9 @@ const Chat = () => {
           <button 
             type="submit" 
             disabled={!inputText.trim()}
-            style={{ borderRadius: '50%', width: '44px', height: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: inputText.trim() ? 'var(--accent-gradient)' : 'var(--surface-color)', border: '1px solid var(--surface-border)', cursor: inputText.trim() ? 'pointer' : 'default', transition: 'all 0.2s', flexShrink: 0 }}
+            style={{ borderRadius: '50%', width: '44px', height: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: inputText.trim() ? 'var(--primary-color)' : 'var(--surface-color)', border: '1px solid var(--surface-border)', cursor: inputText.trim() ? 'pointer' : 'default', transition: 'all 0.2s', flexShrink: 0 }}
           >
-            <Send size={18} color={inputText.trim() ? 'white' : 'var(--text-secondary)'} />
+            <Send size={18} color={inputText.trim() ? 'var(--bg-color)' : 'var(--text-secondary)'} />
           </button>
         </form>
       </div>

@@ -189,6 +189,26 @@ h1, h2, h3, h4, h5, h6 {
   padding-bottom: 120px;
 }
 
+.app-main-section {
+  background-color: #ffffff;
+  --bg-color: #ffffff;
+  --sticky-bg: rgba(255, 255, 255, 0.95);
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  --surface-color: rgba(255, 255, 255, 0.85);
+  --surface-border: rgba(0, 0, 0, 0.08);
+  --input-bg: rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="dark"] .app-main-section {
+  background-color: #000000;
+  --bg-color: #000000;
+  --sticky-bg: rgba(0, 0, 0, 0.95);
+  --nav-bg: rgba(0, 0, 0, 0.85);
+  --surface-color: rgba(255, 255, 255, 0.05);
+  --surface-border: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(255, 255, 255, 0.06);
+}
+
 /* Floating Bottom Navigation */
 .bottom-nav {
   position: fixed;

@@ -159,8 +159,8 @@ const Dashboard = () => {
                   style={{ 
                     position: 'absolute', 
                     right: '0.4rem', 
-                    background: isAiSearch ? 'var(--accent-gradient)' : 'rgba(120, 120, 120, 0.15)',
-                    color: isAiSearch ? 'white' : 'var(--text-secondary)',
+                    background: isAiSearch ? 'var(--primary-color)' : 'rgba(120, 120, 120, 0.15)',
+                    color: isAiSearch ? 'var(--bg-color)' : 'var(--text-secondary)',
                     border: 'none', 
                     borderRadius: '8px', 
                     padding: '0.35rem 0.55rem',

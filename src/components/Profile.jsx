@@ -15,7 +15,8 @@ import {
   Clock, 
   LogOut,
   X,
-  Sparkles
+  Sparkles,
+  Lock
 } from 'lucide-react';
 import Settings from './Settings';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -259,55 +260,59 @@ const Profile = () => {
     (r.fromId === profileUser.id && r.toId === currentUser.id)
   );
 
-  return (
-    <div style={{ paddingBottom: '120px', minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-primary)' }}>
-      {/* Header Toolbar */}
-      <div className="page-sticky-header" style={{ padding: '0.8rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {isPublicView && (
-            <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.25rem' }}>
-              <ArrowLeft size={22} />
-            </button>
-          )}
-          <span style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
-            {profileUser.username ? `@${profileUser.username}` : (profileUser.email ? profileUser.email.split('@')[0] : 'profile')}
-          </span>
-        </div>
-        {!isPublicView && (
-          <button 
-            onClick={() => setShowSettings(true)}
-            style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.5rem' }}
-          >
-            <SettingsIcon size={22} />
-          </button>
-        )}
-      </div>
+  const isConnected = connectionRequest && connectionRequest.status === 'accepted';
+  const isLocked = isPublicView && profileUser.isPrivate && !isConnected;
+  const hasStories = myPosts.length > 0 && !isLocked;
 
-      <div style={{ padding: '1rem' }}>
-        {/* Instagram Profile Header Info Grid */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', marginBottom: '1.25rem', marginTop: '0.5rem' }}>
-          {/* Avatar on Left */}
-          <div style={{ 
-            position: 'relative', 
-            flexShrink: 0,
-            borderRadius: '50%',
-            padding: '3px',
-            background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-          }}>
-            <img 
-              src={isEditing ? (avatarUrl || profileUser.avatar) : profileUser.avatar} 
-              alt={profileUser.name} 
-              style={{ 
-                width: '76px', 
-                height: '76px', 
-                borderRadius: '50%', 
-                objectFit: 'cover', 
-                border: '3px solid var(--bg-color)', 
-                background: 'var(--surface-color)',
-                display: 'block'
-              }}
-            />
+  return (
+        <div style={{ paddingBottom: '120px', minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-primary)' }}>
+          {/* Header Toolbar */}
+          <div className="page-sticky-header" style={{ padding: '0.8rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isPublicView && (
+                <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.25rem' }}>
+                  <ArrowLeft size={22} />
+                </button>
+              )}
+              <span style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
+                {profileUser.username ? `@${profileUser.username}` : (profileUser.email ? profileUser.email.split('@')[0] : 'profile')}
+              </span>
+            </div>
+            {!isPublicView && (
+              <button 
+                onClick={() => setShowSettings(true)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.5rem' }}
+              >
+                <SettingsIcon size={22} />
+              </button>
+            )}
+          </div>
+
+          <div style={{ padding: '1rem' }}>
+            {/* Instagram Profile Header Info Grid */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', marginBottom: '1.25rem', marginTop: '0.5rem' }}>
+              {/* Avatar on Left */}
+              <div style={{ 
+                position: 'relative', 
+                flexShrink: 0,
+                borderRadius: '50%',
+                padding: hasStories ? '3px' : '0',
+                background: hasStories ? 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' : 'transparent',
+                boxShadow: hasStories ? '0 4px 10px rgba(0,0,0,0.1)' : 'none'
+              }}>
+                <img 
+                  src={isEditing ? (avatarUrl || profileUser.avatar) : profileUser.avatar} 
+                  alt={profileUser.name} 
+                  style={{ 
+                    width: '76px', 
+                    height: '76px', 
+                    borderRadius: '50%', 
+                    objectFit: 'cover', 
+                    border: hasStories ? '3px solid var(--bg-color)' : '1px solid var(--surface-border)', 
+                    background: 'var(--surface-color)',
+                    display: 'block'
+                  }}
+                />
             {isEditing && !isPublicView && (
               <>
                 <button 
@@ -581,7 +586,7 @@ const Profile = () => {
               {/* Public View Connections Actions */}
               {!connectionRequest ? (
                 <button 
-                  onClick={() => sendRequest(profileUser.id)}
+                  onClick={() => sendRequest(profileUser, 'Connection Request')}
                   className="btn btn-primary"
                   style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
                 >
@@ -633,7 +638,7 @@ const Profile = () => {
                 </>
               ) : (
                 <button 
-                  onClick={() => sendRequest(profileUser.id)}
+                  onClick={() => sendRequest(profileUser, 'Connection Request')}
                   className="btn btn-primary"
                   style={{ flex: 1, padding: '0.55rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600 }}
                 >
@@ -644,159 +649,190 @@ const Profile = () => {
           )}
         </div>
 
-        {/* Tab Selection (Grid vs Archive) */}
-        <div style={{ display: 'flex', borderTop: '1px solid var(--surface-border)', borderBottom: '1px solid var(--surface-border)', marginBottom: '0.5rem' }}>
-          <button 
-            onClick={() => setActiveTab('posts')}
-            style={{ 
-              flex: 1, 
-              background: 'none', 
-              border: 'none', 
-              padding: '0.75rem 0', 
-              color: activeTab === 'posts' ? 'var(--text-primary)' : 'var(--text-secondary)',
-              borderBottom: activeTab === 'posts' ? '2px solid var(--text-primary)' : 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.35rem',
-              fontWeight: activeTab === 'posts' ? 600 : 400
-            }}
-          >
-            <Grid size={16} />
-            <span style={{ fontSize: '0.85rem' }}>Posts</span>
-          </button>
-          
-          {!isPublicView && (
-            <button 
-              onClick={() => setActiveTab('archived')}
-              style={{ 
-                flex: 1, 
-                background: 'none', 
-                border: 'none', 
-                padding: '0.75rem 0', 
-                color: activeTab === 'archived' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderBottom: activeTab === 'archived' ? '2px solid var(--text-primary)' : 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                fontWeight: activeTab === 'archived' ? 600 : 400
-              }}
-            >
-              <Archive size={16} />
-              <span style={{ fontSize: '0.85rem' }}>Archived</span>
-            </button>
-          )}
-        </div>
-
-        {/* Instagram Grid of Posts */}
-        {activeTab === 'posts' ? (
-          myPosts.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px' }}>
-              {myPosts.map(post => (
-                <div 
-                  key={post.id} 
-                  onClick={() => setSelectedPost(post)}
-                  style={{ 
-                    position: 'relative', 
-                    width: '100%', 
-                    aspectRatio: '1 / 1', 
-                    background: 'var(--surface-color)', 
-                    borderRadius: '4px',
-                    overflow: 'hidden', 
-                    cursor: 'pointer',
-                    boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)'
-                  }}
-                >
-                  {post.image ? (
-                    <img 
-                      src={post.image} 
-                      alt="Post" 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                    />
-                  ) : (
-                    <div style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      padding: '0.5rem', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      textAlign: 'center', 
-                      background: 'linear-gradient(135deg, var(--surface-color) 0%, rgba(0, 0, 0, 0.03) 100%)',
-                      fontSize: '0.72rem', 
-                      lineHeight: 1.3,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      fontWeight: 500,
-                      opacity: 0.85
-                    }}>
-                      {post.text && post.text.length > 35 ? `${post.text.slice(0, 35)}...` : post.text}
-                    </div>
-                  )}
-                </div>
-              ))}
+        {isLocked ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '4rem 1.5rem', 
+            borderTop: '1px solid var(--surface-border)',
+            marginTop: '1.5rem',
+            color: 'var(--text-secondary)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              padding: '1.1rem',
+              borderRadius: '50%',
+              background: 'var(--surface-color)',
+              border: '1px solid var(--surface-border)',
+              marginBottom: '1rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+            }}>
+              <Lock size={30} style={{ color: 'var(--text-primary)' }} />
             </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-secondary)' }}>
-              <Grid size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-              <p style={{ margin: 0, fontSize: '0.9rem' }}>No posts yet.</p>
-            </div>
-          )
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '0.4rem', fontSize: '1.1rem', fontWeight: 600 }}>This Account is Private</h3>
+            <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.5, maxWidth: '260px', opacity: 0.8 }}>
+              Connect with this user to view their posts and meetups.
+            </p>
+          </div>
         ) : (
-          myArchivedPosts.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px' }}>
-              {myArchivedPosts.map(post => (
-                <div 
-                  key={post.id} 
-                  onClick={() => setSelectedPost(post)}
+          <>
+            {/* Tab Selection (Grid vs Archive) */}
+            <div style={{ display: 'flex', borderTop: '1px solid var(--surface-border)', borderBottom: '1px solid var(--surface-border)', marginBottom: '0.5rem' }}>
+              <button 
+                onClick={() => setActiveTab('posts')}
+                style={{ 
+                  flex: 1, 
+                  background: 'none', 
+                  border: 'none', 
+                  padding: '0.75rem 0', 
+                  color: activeTab === 'posts' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  borderBottom: activeTab === 'posts' ? '2px solid var(--text-primary)' : 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem',
+                  fontWeight: activeTab === 'posts' ? 600 : 400
+                }}
+              >
+                <Grid size={16} />
+                <span style={{ fontSize: '0.85rem' }}>Posts</span>
+              </button>
+              
+              {!isPublicView && (
+                <button 
+                  onClick={() => setActiveTab('archived')}
                   style={{ 
-                    position: 'relative', 
-                    width: '100%', 
-                    aspectRatio: '1 / 1', 
-                    background: 'var(--surface-color)', 
-                    borderRadius: '4px',
-                    overflow: 'hidden', 
-                    cursor: 'pointer'
+                    flex: 1, 
+                    background: 'none', 
+                    border: 'none', 
+                    padding: '0.75rem 0', 
+                    color: activeTab === 'archived' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    borderBottom: activeTab === 'archived' ? '2px solid var(--text-primary)' : 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    fontWeight: activeTab === 'archived' ? 600 : 400
                   }}
                 >
-                  {post.image ? (
-                    <img 
-                      src={post.image} 
-                      alt="Post" 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} 
-                    />
-                  ) : (
-                    <div style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      padding: '0.5rem', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      textAlign: 'center', 
-                      background: 'var(--surface-color)', 
-                      fontSize: '0.72rem', 
-                      lineHeight: 1.3,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      fontWeight: 500,
-                      opacity: 0.7
-                    }}>
-                      {post.text && post.text.length > 35 ? `${post.text.slice(0, 35)}...` : post.text}
+                  <Archive size={16} />
+                  <span style={{ fontSize: '0.85rem' }}>Archived</span>
+                </button>
+              )}
+            </div>
+
+            {/* Instagram Grid of Posts */}
+            {activeTab === 'posts' ? (
+              myPosts.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px' }}>
+                  {myPosts.map(post => (
+                    <div 
+                      key={post.id} 
+                      onClick={() => setSelectedPost(post)}
+                      style={{ 
+                        position: 'relative', 
+                        width: '100%', 
+                        aspectRatio: '1 / 1', 
+                        background: 'var(--surface-color)', 
+                        borderRadius: '4px',
+                        overflow: 'hidden', 
+                        cursor: 'pointer',
+                        boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      {post.image ? (
+                        <img 
+                          src={post.image} 
+                          alt="Post" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      ) : (
+                        <div style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          padding: '0.5rem', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          textAlign: 'center', 
+                          background: 'linear-gradient(135deg, var(--surface-color) 0%, rgba(0, 0, 0, 0.03) 100%)',
+                          fontSize: '0.72rem', 
+                          lineHeight: 1.3,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          fontWeight: 500,
+                          opacity: 0.85
+                        }}>
+                          {post.text && post.text.length > 35 ? `${post.text.slice(0, 35)}...` : post.text}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-secondary)' }}>
-              <Archive size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-              <p style={{ margin: 0, fontSize: '0.9rem' }}>No archived posts.</p>
-            </div>
-          )
+              ) : (
+                <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-secondary)' }}>
+                  <Grid size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+                  <p style={{ margin: 0, fontSize: '0.9rem' }}>No posts yet.</p>
+                </div>
+              )
+            ) : (
+              myArchivedPosts.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px' }}>
+                  {myArchivedPosts.map(post => (
+                    <div 
+                      key={post.id} 
+                      onClick={() => setSelectedPost(post)}
+                      style={{ 
+                        position: 'relative', 
+                        width: '100%', 
+                        aspectRatio: '1 / 1', 
+                        background: 'var(--surface-color)', 
+                        borderRadius: '4px',
+                        overflow: 'hidden', 
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {post.image ? (
+                        <img 
+                          src={post.image} 
+                          alt="Post" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} 
+                        />
+                      ) : (
+                        <div style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          padding: '0.5rem', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          textAlign: 'center', 
+                          background: 'var(--surface-color)', 
+                          fontSize: '0.72rem', 
+                          lineHeight: 1.3,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          fontWeight: 500,
+                          opacity: 0.7
+                        }}>
+                          {post.text && post.text.length > 35 ? `${post.text.slice(0, 35)}...` : post.text}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-secondary)' }}>
+                  <Archive size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+                  <p style={{ margin: 0, fontSize: '0.9rem' }}>No archived posts.</p>
+                </div>
+              )
+            )}
+          </>
         )}
       </div>
 

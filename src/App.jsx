@@ -14,6 +14,7 @@ import { RequireAuth } from './components/RequireAuth';
 import { RequireLocation } from './components/RequireLocation';
 import SplashScreen from './components/SplashScreen';
 import CreatePostModal from './components/CreatePostModal';
+import ResetPassword from './components/ResetPassword';
 import { AnimatePresence } from 'framer-motion';
 
 
@@ -107,7 +108,7 @@ const AppContent = () => {
   }
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${currentUser ? 'app-main-section' : ''}`}>
       <ScrollToTop />
       <Notifications />
       
@@ -115,6 +116,7 @@ const AppContent = () => {
         <Route path="/" element={currentUser ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
         <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
+        <Route path="/reset-password" element={currentUser ? <Navigate to="/dashboard" replace /> : <ResetPassword />} />
         
         {/* Protected Routes */}
         <Route path="/dashboard" element={
