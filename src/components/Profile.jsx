@@ -339,16 +339,23 @@ const Profile = () => {
               <div style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{myPosts.length}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '0.15rem' }}>posts</div>
             </div>
+
+            {/* Meetups — only clickable on own profile */}
             <div
-              onClick={() => setShowStatModal('meetups')}
-              style={{ cursor: 'pointer' }}
+              onClick={() => !isPublicView && setShowStatModal('meetups')}
+              style={{ cursor: !isPublicView ? 'pointer' : 'default', opacity: isPublicView ? 0.6 : 1 }}
             >
               <div style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{myMeetupsCount}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '0.15rem' }}>meetups</div>
             </div>
+
+            {/* Connections — clickable on own profile, or on others only if not locked */}
             <div
-              onClick={() => setShowStatModal('connections')}
-              style={{ cursor: 'pointer' }}
+              onClick={() => {
+                if (!isPublicView) { setShowStatModal('connections'); return; }
+                if (!isLocked) { setShowStatModal('connections'); }
+              }}
+              style={{ cursor: (!isPublicView || !isLocked) ? 'pointer' : 'default', opacity: (isPublicView && isLocked) ? 0.6 : 1 }}
             >
               <div style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{myConnectionsCount}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '0.15rem' }}>connections</div>
@@ -1066,8 +1073,8 @@ const Profile = () => {
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>@{user.username}</div>
                           )}
                         </div>
-                        {/* Only show Message button if current user is one of them */}
-                        {(currentUser.id === profileUser.id || currentUser.id === user.id) && (
+                        {/* Message button only on own profile */}
+                        {!isPublicView && (
                           <button
                             onClick={() => { setShowStatModal(null); navigate(`/chat/${requestId}`); }}
                             style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', color: 'var(--text-primary)', borderRadius: '8px', padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
