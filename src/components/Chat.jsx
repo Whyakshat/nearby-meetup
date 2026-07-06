@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
-import { ArrowLeft, Send, MapPin, X, Sparkles } from 'lucide-react';
+import { ArrowLeft, Send, MapPin, X } from 'lucide-react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix leaflet icon issue
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -18,470 +17,267 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
   ? 'http://localhost:5001/api'
   : 'https://nearby-meetup.onrender.com/api';
 
+const formatMsgTime = (ts) =>
+  new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+const formatDateLabel = (ts) => {
+  const d = new Date(ts);
+  const now = new Date();
+  const yest = new Date(); yest.setDate(yest.getDate() - 1);
+  if (d.toDateString() === now.toDateString()) return 'Today';
+  if (d.toDateString() === yest.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+};
+
+const groupByDate = (msgs) => {
+  const out = [];
+  let cur = null;
+  msgs.forEach(m => {
+    const dk = new Date(m.timestamp).toDateString();
+    if (dk !== cur) { cur = dk; out.push({ type: 'date', label: formatDateLabel(m.timestamp), key: dk + m.id }); }
+    out.push({ type: 'msg', data: m });
+  });
+  return out;
+};
+
 const Chat = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { requests, currentUser, messages, sendMessage, registeredUsers, location, respondToRequest } = useAppContext();
   const [inputText, setInputText] = useState('');
-  const [showLocationMenu, setShowLocationMenu] = useState(false);
+  const [showLocMenu, setShowLocMenu] = useState(false);
   const [showTimerMenu, setShowTimerMenu] = useState(false);
-  
-  // AI Icebreaker states
   const [icebreakers, setIcebreakers] = useState([]);
-  const [showIcebreakers, setShowIcebreakers] = useState(true);
-  const [loadingIcebreakers, setLoadingIcebreakers] = useState(false);
-  
-  const messagesEndRef = useRef(null);
+  const [showIce, setShowIce] = useState(true);
+  const endRef = useRef(null);
+  const inputRef = useRef(null);
 
   const request = requests.find(r => r.id === id);
-  
-  const otherUserId = request && currentUser ? (request.from.id === currentUser.id ? request.to.id : request.from.id) : null;
-  const otherUser = request && currentUser ? (registeredUsers?.find(u => u.id === otherUserId) || (request.from.id === currentUser.id ? request.to : request.from)) : null;
+  const otherUserId = request && currentUser
+    ? (request.from.id === currentUser.id ? request.to.id : request.from.id) : null;
+  const otherUser = request && currentUser
+    ? (registeredUsers?.find(u => u.id === otherUserId) || (request.from.id === currentUser.id ? request.to : request.from))
+    : null;
 
   const chatMessages = messages.filter(m => m.requestId === id);
   const isPending = request?.status === 'pending';
-  const isReceived = request?.to?.id === currentUser.id;
+  const isReceived = request?.to?.id === currentUser?.id;
+  const grouped = groupByDate(chatMessages);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  useEffect(() => {
-    if (!otherUser?.interests) return;
-    
-    const fetchIcebreakers = async () => {
-      setLoadingIcebreakers(true);
+    if (!otherUser?.interests || isPending) return;
+    (async () => {
       try {
         const res = await fetch(`${API_URL}/ai/icebreakers`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('vibecheck_token')}`
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('vibecheck_token')}` },
           body: JSON.stringify({ interests: otherUser.interests })
         });
         const data = await res.json();
         setIcebreakers(data.icebreakers || []);
-      } catch (err) {
-        console.error('Failed to fetch icebreakers:', err);
-      } finally {
-        setLoadingIcebreakers(false);
-      }
-    };
+      } catch (_) {}
+    })();
+  }, [otherUser?.id, isPending]);
 
-    fetchIcebreakers();
-  }, [otherUser?.id]);
+  const handleSend = useCallback((e) => {
+    e.preventDefault();
+    if (inputText.trim()) { sendMessage(id, inputText.trim(), 'text'); setInputText(''); inputRef.current?.focus(); }
+  }, [inputText, id, sendMessage]);
+
+  const handleSendLoc = (type, mins = 0) => {
+    if (!location) { alert('Location not available.'); return; }
+    const expiresAt = type === 'location_live' && mins > 0 ? new Date(Date.now() + mins * 60000).toISOString() : null;
+    sendMessage(id, JSON.stringify(location), type, expiresAt);
+    setShowLocMenu(false); setShowTimerMenu(false);
+  };
+
+  const renderLocMsg = (msg) => {
+    let loc;
+    try { loc = JSON.parse(msg.content || msg.text); } catch { return <span style={{fontSize:'0.9rem'}}>📍 Location</span>; }
+    const isLive = msg.type === 'location_live' && msg.expiresAt && new Date() < new Date(msg.expiresAt);
+    return (
+      <div onClick={() => window.open(`https://www.google.com/maps?q=${loc.lat},${loc.lng}`, '_blank')}
+        style={{width:'210px',borderRadius:'12px',overflow:'hidden',cursor:'pointer',border:'1px solid var(--surface-border)'}}>
+        <div style={{padding:'0.4rem 0.65rem',fontSize:'0.72rem',fontWeight:600,display:'flex',alignItems:'center',gap:'0.25rem',background:isLive?'rgba(255,71,87,0.1)':'rgba(0,0,0,0.04)',color:isLive?'#ff4757':'inherit'}}>
+          <MapPin size={10}/>{msg.type==='location_static'?'Current Location':isLive?'🔴 Live Location':'Live (Ended)'}
+        </div>
+        <div style={{height:'110px',pointerEvents:'none'}}>
+          <MapContainer center={[loc.lat,loc.lng]} zoom={14} zoomControl={false} dragging={false} touchZoom={false} doubleClickZoom={false} scrollWheelZoom={false} style={{height:'100%',width:'100%'}}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+            <Marker position={[loc.lat,loc.lng]}/>
+          </MapContainer>
+        </div>
+        <div style={{padding:'0.3rem 0.65rem',fontSize:'0.65rem',opacity:0.5,background:'rgba(0,0,0,0.02)'}}>
+          {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)} · Tap to open
+        </div>
+      </div>
+    );
+  };
 
   if (!currentUser) return null;
-
   if (!request || (request.status !== 'accepted' && request.status !== 'pending')) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>Chat not found or request not accepted.</p>
+      <div style={{padding:'2rem',textAlign:'center',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'1rem'}}>
+        <p style={{color:'var(--text-secondary)'}}>Chat not found.</p>
         <button className="btn btn-glass" onClick={() => navigate('/inbox')}>Back to Inbox</button>
       </div>
     );
   }
 
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (inputText.trim()) {
-      sendMessage(id, inputText.trim(), 'text');
-      setInputText('');
-    }
-  };
-
-  const handleSendLocation = (type, durationMinutes = 0) => {
-    if (!location) {
-      alert("Location not available. Please enable GPS.");
-      return;
-    }
-    let expiresAt = null;
-    if (type === 'location_live' && durationMinutes > 0) {
-      expiresAt = new Date(Date.now() + durationMinutes * 60000).toISOString();
-    }
-    const content = JSON.stringify(location);
-    sendMessage(id, content, type, expiresAt);
-    setShowLocationMenu(false);
-    setShowTimerMenu(false);
-  };
-
-  const renderMessageContent = (msg) => {
-    const textContent = msg.content || msg.text;
-    
-    if (msg.type === 'location_static' || msg.type === 'location_live') {
-      let loc;
-      try {
-        loc = JSON.parse(textContent);
-      } catch(e) {
-        return <p>Invalid Location Data</p>;
-      }
-      
-      let isLiveActive = false;
-      if (msg.type === 'location_live' && msg.expiresAt) {
-        isLiveActive = new Date() < new Date(msg.expiresAt);
-      }
-
-      const mapUrl = `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
-      return (
-        <div 
-          onClick={() => window.open(mapUrl, '_blank')}
-          style={{ 
-            width: '240px', 
-            borderRadius: '16px', 
-            overflow: 'hidden', 
-            cursor: 'pointer', 
-            background: 'var(--surface-color)', 
-            border: '1px solid var(--surface-border)',
-            transition: 'transform 0.2s',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          <div style={{ 
-            padding: '0.6rem 0.85rem', 
-            background: msg.type === 'location_live' && isLiveActive ? 'rgba(255, 71, 87, 0.1)' : 'rgba(0,0,0,0.04)', 
-            fontSize: '0.8rem', 
-            fontWeight: 600, 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.35rem', 
-            borderBottom: '1px solid var(--surface-border)',
-            color: msg.type === 'location_live' && isLiveActive ? '#ff4757' : 'var(--text-primary)'
-          }}>
-            <MapPin size={13} /> 
-            {msg.type === 'location_static' ? 'Current Location' : (isLiveActive ? '🔴 Live Location' : 'Live Location (Ended)')}
-          </div>
-          
-          {/* Map Preview */}
-          <div style={{ height: '140px', width: '100%', position: 'relative', pointerEvents: 'none', zIndex: 1 }}>
-            <MapContainer 
-              center={[loc.lat, loc.lng]} 
-              zoom={14} 
-              zoomControl={false}
-              dragging={false}
-              touchZoom={false}
-              doubleClickZoom={false}
-              scrollWheelZoom={false}
-              style={{ height: '100%', width: '100%' }}
-            >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker position={[loc.lat, loc.lng]} />
-            </MapContainer>
-          </div>
-
-          <div style={{ padding: '0.6rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', background: 'rgba(0,0,0,0.02)' }}>
-            <span style={{ opacity: 0.7, color: 'var(--text-primary)' }}>
-              {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
-            </span>
-            <span style={{ fontWeight: 600, color: 'var(--accent-color)' }}>
-              View Map
-            </span>
-          </div>
-        </div>
-      );
-    }
-    
-    return <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: 1.5 }}>{textContent}</p>;
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg-color)' }}>
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'var(--bg-color)',overflow:'hidden'}}>
+
       {/* Header */}
-      <div style={{ 
-        padding: '1rem 1rem',
-        paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))',
-        borderBottom: '1px solid var(--surface-border)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-        background: 'var(--surface-color)',
-        backdropFilter: 'blur(30px)',
-        WebkitBackdropFilter: 'blur(30px)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-      }}>
-        <button 
-          onClick={() => navigate('/inbox')}
-          style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.25rem' }}
-        >
-          <ArrowLeft size={22} />
+      <div style={{paddingTop:'calc(0.8rem + env(safe-area-inset-top, 0px))',paddingBottom:'0.8rem',paddingLeft:'0.5rem',paddingRight:'1rem',borderBottom:'1px solid var(--surface-border)',display:'flex',alignItems:'center',gap:'0.6rem',background:'var(--bg-color)',backdropFilter:'blur(30px)',WebkitBackdropFilter:'blur(30px)',position:'sticky',top:0,zIndex:10}}>
+        <button onClick={() => navigate('/inbox')} style={{background:'none',border:'none',color:'var(--text-primary)',cursor:'pointer',display:'flex',alignItems:'center',padding:'0.4rem',borderRadius:'50%',flexShrink:0}}>
+          <ArrowLeft size={20}/>
         </button>
-        <img 
-          src={otherUser.avatar} 
-          alt={otherUser.name} 
-          style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: 'var(--surface-border)', objectFit: 'cover', border: '2px solid var(--surface-border)' }} 
-        />
-        <div>
-          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600 }}>{otherUser.name}</h3>
-          <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{request.activity}</p>
+        <div style={{position:'relative',flexShrink:0}}>
+          <img src={otherUser.avatar} alt={otherUser.name} style={{width:'36px',height:'36px',borderRadius:'50%',objectFit:'cover',display:'block',background:'var(--surface-border)'}}/>
+          {!isPending && <div style={{position:'absolute',bottom:0,right:0,width:'9px',height:'9px',borderRadius:'50%',background:'#34c759',border:'2px solid var(--bg-color)'}}/>}
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <h3 style={{margin:0,fontSize:'0.95rem',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{otherUser.name}</h3>
+          <p style={{margin:0,fontSize:'0.7rem',color:'var(--text-secondary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+            {isPending?(isReceived?'Wants to connect':'Request sent'):request.activity}
+          </p>
         </div>
       </div>
 
-      {/* AI Icebreakers Panel */}
-      {!isPending && showIcebreakers && icebreakers.length > 0 && (
-        <div style={{ 
-          background: 'var(--surface-color)', 
-          borderBottom: '1px solid var(--surface-border)', 
-          padding: '0.65rem 1rem', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '0.4rem',
-          zIndex: 5
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              <Sparkles size={11} /> AI Icebreakers
-            </span>
-            <button 
-              onClick={() => setShowIcebreakers(false)}
-              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.72rem', cursor: 'pointer', padding: 0 }}
-            >
-              Hide
-            </button>
-          </div>
-          <div className="hide-scrollbar" style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
-            {icebreakers.map((breaker, idx) => (
-              <button
-                key={idx}
-                onClick={() => setInputText(breaker)}
-                style={{
-                  background: 'var(--bg-color)',
-                  border: '1px solid var(--surface-border)',
-                  color: 'var(--text-primary)',
-                  padding: '0.45rem 0.8rem',
-                  borderRadius: '12px',
-                  fontSize: '0.78rem',
-                  fontWeight: 500,
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-color)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-color)'}
-              >
-                {breaker}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Messages */}
+      <div style={{flex:1,overflowY:'auto',padding:'0.5rem 0.875rem',display:'flex',flexDirection:'column',paddingBottom:isPending?'100px':'80px'}} onClick={() => setShowLocMenu(false)}>
 
-      {/* Messages Area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '90px' }}>
         {isPending ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', padding: '0 1.5rem' }}>
-            <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'var(--surface-color)', border: '2px solid var(--surface-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', overflow: 'hidden' }}>
-              <img src={otherUser.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'0.5rem',padding:'3rem 1.5rem',textAlign:'center'}}>
+            <img src={otherUser.avatar} alt="" style={{width:'60px',height:'60px',borderRadius:'50%',objectFit:'cover',border:'2px solid var(--surface-border)'}}/>
+            <div style={{fontWeight:600,fontSize:'0.98rem',color:'var(--text-primary)'}}>{otherUser.name}</div>
+            <div style={{fontSize:'0.82rem',color:'var(--text-secondary)',lineHeight:1.5}}>
+              {isReceived?<>Wants to meet — <strong>"{request.activity}"</strong></>:<>You asked — <strong>"{request.activity}"</strong></>}
             </div>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-              {otherUser.name}
-            </h3>
-            <p style={{ margin: 0, fontSize: '0.88rem', opacity: 0.8, lineHeight: 1.5 }}>
-              {isReceived ? (
-                `wants to connect with you to "${request.activity}".`
-              ) : (
-                `You sent a request to connect to "${request.activity}".`
-              )}
-            </p>
-            <p style={{ margin: 0, fontSize: '0.78rem', opacity: 0.6 }}>
-              {isReceived ? 'Respond below to start chatting!' : 'Waiting for their response.'}
-            </p>
-          </div>
-        ) : chatMessages.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--surface-color)', border: '1px solid var(--surface-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }}>
-              <img src={otherUser.avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+            <div style={{fontSize:'0.72rem',color:'var(--text-secondary)',opacity:0.6}}>
+              {isReceived?'Respond below to start chatting.':'Waiting for their response.'}
             </div>
-            <p style={{ fontWeight: 500 }}>Say hi to {otherUser?.name?.split(' ')[0] || 'Unknown'}!</p>
-            <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>Connected via: {request.activity}</p>
           </div>
         ) : (
-          chatMessages.map(msg => {
-            const isMe = msg.senderId === currentUser.id;
-            return (
-              <div key={msg.id} style={{ 
-                alignSelf: isMe ? 'flex-end' : 'flex-start',
-                maxWidth: '78%',
-                background: isMe ? 'var(--accent-gradient)' : 'var(--surface-color)',
-                color: isMe ? 'white' : 'var(--text-primary)',
-                padding: (msg.type === 'text' || !msg.type) ? '0.75rem 1rem' : '0',
-                borderRadius: '18px',
-                borderBottomRightRadius: isMe ? '4px' : '18px',
-                borderBottomLeftRadius: !isMe ? '4px' : '18px',
-                border: !isMe ? '1px solid var(--surface-border)' : 'none',
-                overflow: 'hidden',
-                boxShadow: isMe ? '0 4px 12px rgba(255, 118, 117, 0.3)' : '0 2px 8px rgba(0,0,0,0.08)'
-              }}>
-                {renderMessageContent(msg)}
-                <span style={{ fontSize: '0.65rem', opacity: 0.65, marginTop: '4px', display: 'block', textAlign: isMe ? 'right' : 'left', padding: (msg.type !== 'text' && msg.type) ? '0 0.5rem 0.5rem' : '0' }}>
-                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+          <>
+            {showIce && icebreakers.length > 0 && chatMessages.length === 0 && (
+              <div style={{padding:'0.75rem 0 1rem'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'0.4rem'}}>
+                  <span style={{fontSize:'0.68rem',fontWeight:600,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px'}}>✨ Suggestions</span>
+                  <button onClick={() => setShowIce(false)} style={{background:'none',border:'none',color:'var(--text-secondary)',fontSize:'0.68rem',cursor:'pointer',padding:0}}>Dismiss</button>
+                </div>
+                <div className="hide-scrollbar" style={{display:'flex',gap:'0.4rem',overflowX:'auto'}}>
+                  {icebreakers.map((b,i) => (
+                    <button key={i} onClick={() => { setInputText(b); inputRef.current?.focus(); }}
+                      style={{background:'var(--surface-color)',border:'1px solid var(--surface-border)',color:'var(--text-primary)',padding:'0.35rem 0.7rem',borderRadius:'999px',fontSize:'0.75rem',whiteSpace:'nowrap',cursor:'pointer',flexShrink:0}}>
+                      {b}
+                    </button>
+                  ))}
+                </div>
               </div>
-            );
-          })
+            )}
+
+            {chatMessages.length === 0 && (!showIce || icebreakers.length === 0) && (
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'0.4rem',padding:'3rem 1.5rem',textAlign:'center',color:'var(--text-secondary)'}}>
+                <img src={otherUser.avatar} alt="" style={{width:'48px',height:'48px',borderRadius:'50%',objectFit:'cover',border:'2px solid var(--surface-border)',marginBottom:'0.2rem'}}/>
+                <p style={{fontWeight:500,fontSize:'0.9rem',color:'var(--text-primary)',margin:0}}>Say hi to {otherUser?.name?.split(' ')[0]||'them'}!</p>
+                <p style={{fontSize:'0.75rem',opacity:0.6,margin:0}}>via {request.activity}</p>
+              </div>
+            )}
+
+            {grouped.map((item, idx) => {
+              if (item.type === 'date') {
+                return (
+                  <div key={item.key} style={{display:'flex',justifyContent:'center',padding:'0.75rem 0 0.4rem'}}>
+                    <span style={{fontSize:'0.67rem',color:'var(--text-secondary)',background:'var(--surface-color)',border:'1px solid var(--surface-border)',padding:'0.18rem 0.6rem',borderRadius:'999px',fontWeight:500}}>
+                      {item.label}
+                    </span>
+                  </div>
+                );
+              }
+              const msg = item.data;
+              const isMe = msg.senderId === currentUser.id;
+              const isLoc = msg.type === 'location_static' || msg.type === 'location_live';
+              const nextItem = grouped[idx+1];
+              const nextMsg = nextItem?.type === 'msg' ? nextItem.data : null;
+              const isLast = !nextMsg || nextMsg.senderId !== msg.senderId;
+              return (
+                <div key={msg.id} style={{display:'flex',justifyContent:isMe?'flex-end':'flex-start',marginBottom:isLast?'0.45rem':'2px',paddingLeft:isMe?'3rem':'0',paddingRight:isMe?'0':'3rem'}}>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:isMe?'flex-end':'flex-start',gap:'2px',maxWidth:'100%'}}>
+                    <div style={{
+                      background:isMe?'linear-gradient(135deg,#ff7675,#ffb142)':'var(--surface-color)',
+                      color:isMe?'#fff':'var(--text-primary)',
+                      padding:isLoc?'0':'0.5rem 0.8rem',
+                      borderRadius:isMe?`18px 18px ${isLast?'5px':'18px'} 18px`:`18px 18px 18px ${isLast?'5px':'18px'}`,
+                      border:!isMe?'1px solid var(--surface-border)':'none',
+                      overflow:'hidden',wordBreak:'break-word'
+                    }}>
+                      {isLoc?renderLocMsg(msg):<span style={{fontSize:'0.92rem',lineHeight:1.4}}>{msg.content||msg.text}</span>}
+                    </div>
+                    {isLast && (
+                      <span style={{fontSize:'0.62rem',color:'var(--text-secondary)',opacity:0.5,padding:isMe?'0 2px 0 0':'0 0 0 2px'}}>
+                        {formatMsgTime(msg.timestamp)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={endRef}/>
       </div>
 
-      {/* Input Area — fixed with safe area */}
-      <div style={{ 
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        padding: '0.75rem 1rem',
-        paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
-        background: 'var(--surface-color)',
-        backdropFilter: 'blur(30px)',
-        WebkitBackdropFilter: 'blur(30px)',
-        borderTop: '1px solid var(--surface-border)',
-        zIndex: 10
-      }}>
+      {/* Input */}
+      <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'480px',paddingTop:'0.45rem',paddingLeft:'0.75rem',paddingRight:'0.75rem',paddingBottom:'calc(0.55rem + env(safe-area-inset-bottom, 0px))',background:'var(--bg-color)',backdropFilter:'blur(30px)',WebkitBackdropFilter:'blur(30px)',borderTop:'1px solid var(--surface-border)',zIndex:10}}>
         {isPending ? (
           isReceived ? (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              padding: '0.5rem 0',
-              maxWidth: '600px',
-              margin: '0 auto',
-            }}>
-              <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
-                <button
-                  onClick={() => respondToRequest(request.id, 'accepted')}
-                  style={{
-                    flex: 1,
-                    background: '#007AFF', // Apple Blue
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.75rem',
-                    borderRadius: '12px',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(0, 122, 255, 0.25)',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.35rem'
-                  }}
-                >
-                  Accept
-                </button>
-                <button
-                  onClick={() => {
-                    respondToRequest(request.id, 'declined');
-                    navigate('/inbox');
-                  }}
-                  style={{
-                    flex: 1,
-                    background: 'var(--bg-color)',
-                    color: 'var(--text-primary)',
-                    border: '1px solid var(--surface-border)',
-                    padding: '0.75rem',
-                    borderRadius: '12px',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.35rem'
-                  }}
-                >
-                  Decline
-                </button>
-              </div>
+            <div style={{display:'flex',gap:'0.6rem'}}>
+              <button onClick={() => respondToRequest(request.id,'accepted')} style={{flex:1,background:'#007AFF',color:'white',border:'none',padding:'0.65rem',borderRadius:'11px',fontSize:'0.88rem',fontWeight:600,cursor:'pointer'}}>Accept</button>
+              <button onClick={() => { respondToRequest(request.id,'declined'); navigate('/inbox'); }} style={{flex:1,background:'var(--surface-color)',color:'var(--text-secondary)',border:'1px solid var(--surface-border)',padding:'0.65rem',borderRadius:'11px',fontSize:'0.88rem',fontWeight:600,cursor:'pointer'}}>Decline</button>
             </div>
           ) : (
-            <div style={{
-              textAlign: 'center',
-              padding: '0.75rem',
-              maxWidth: '600px',
-              margin: '0 auto',
-              color: 'var(--text-secondary)',
-              fontSize: '0.88rem',
-              fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.4rem'
-            }}>
-              <span style={{ display: 'inline-flex', opacity: 0.7 }}>⏳</span> Waiting for {otherUser?.name?.split(' ')[0] || 'them'} to accept your request.
+            <div style={{textAlign:'center',padding:'0.6rem',color:'var(--text-secondary)',fontSize:'0.82rem'}}>
+              ⏳ Waiting for {otherUser?.name?.split(' ')[0]||'them'} to accept.
             </div>
           )
         ) : (
           <>
-            {/* Location Menu Modal */}
-            {showLocationMenu && (
-              <div style={{ position: 'absolute', bottom: '100%', left: '1rem', background: 'var(--surface-color)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid var(--surface-border)', borderRadius: '16px', padding: '0.5rem', marginBottom: '0.5rem', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: '200px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0.5rem', borderBottom: '1px solid var(--surface-border)', marginBottom: '0.25rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>Share Location</span>
-                  <button onClick={() => { setShowLocationMenu(false); setShowTimerMenu(false); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex' }}><X size={14}/></button>
+            {showLocMenu && (
+              <div style={{position:'absolute',bottom:'100%',left:'0.75rem',background:'var(--bg-color)',border:'1px solid var(--surface-border)',borderRadius:'14px',padding:'0.35rem',marginBottom:'0.4rem',boxShadow:'0 6px 20px rgba(0,0,0,0.1)',minWidth:'175px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0.25rem 0.45rem',borderBottom:'1px solid var(--surface-border)',marginBottom:'0.15rem'}}>
+                  <span style={{fontSize:'0.75rem',fontWeight:600}}>Share Location</span>
+                  <button onClick={() => { setShowLocMenu(false); setShowTimerMenu(false); }} style={{background:'none',border:'none',color:'var(--text-secondary)',cursor:'pointer',display:'flex'}}><X size={12}/></button>
                 </div>
-                
                 {!showTimerMenu ? (
                   <>
-                    <button 
-                      onClick={() => handleSendLocation('location_static')}
-                      style={{ background: 'transparent', border: 'none', padding: '0.75rem', textAlign: 'left', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', fontSize: '0.9rem' }}
-                    >
-                      <MapPin size={15} /> Current Location
-                    </button>
-                    <button 
-                      onClick={() => setShowTimerMenu(true)}
-                      style={{ background: 'transparent', border: 'none', padding: '0.75rem', textAlign: 'left', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-color)', fontSize: '0.9rem', fontWeight: 500 }}
-                    >
-                      <MapPin size={15} /> Live Location...
-                    </button>
+                    <button onClick={() => handleSendLoc('location_static')} style={{width:'100%',background:'transparent',border:'none',padding:'0.55rem 0.45rem',textAlign:'left',borderRadius:'7px',cursor:'pointer',display:'flex',alignItems:'center',gap:'0.35rem',color:'var(--text-primary)',fontSize:'0.82rem'}}><MapPin size={12}/>Current Location</button>
+                    <button onClick={() => setShowTimerMenu(true)} style={{width:'100%',background:'transparent',border:'none',padding:'0.55rem 0.45rem',textAlign:'left',borderRadius:'7px',cursor:'pointer',display:'flex',alignItems:'center',gap:'0.35rem',color:'var(--accent-color)',fontSize:'0.82rem',fontWeight:500}}><MapPin size={12}/>Live Location…</button>
                   </>
                 ) : (
                   <>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', padding: '0 0.5rem', marginBottom: '0.25rem' }}>Share for how long?</p>
-                    {[{ label: '15 minutes', val: 15 }, { label: '1 hour', val: 60 }, { label: '8 hours', val: 480 }].map(({ label, val }) => (
-                      <button 
-                        key={val}
-                        onClick={() => handleSendLocation('location_live', val)}
-                        style={{ background: 'transparent', border: 'none', padding: '0.75rem', textAlign: 'left', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '0.9rem' }}
-                      >
-                        {label}
-                      </button>
+                    <p style={{fontSize:'0.7rem',color:'var(--text-secondary)',padding:'0 0.45rem',margin:'0 0 0.15rem'}}>Share for how long?</p>
+                    {[{label:'15 min',val:15},{label:'1 hour',val:60},{label:'8 hours',val:480}].map(({label,val}) => (
+                      <button key={val} onClick={() => handleSendLoc('location_live',val)} style={{width:'100%',background:'transparent',border:'none',padding:'0.55rem 0.45rem',textAlign:'left',borderRadius:'7px',cursor:'pointer',color:'var(--text-primary)',fontSize:'0.82rem'}}>{label}</button>
                     ))}
                   </>
                 )}
               </div>
             )}
-
-            <form onSubmit={handleSend} style={{ display: 'flex', gap: '0.5rem', maxWidth: '600px', margin: '0 auto', alignItems: 'center' }}>
-              <button 
-                type="button"
-                onClick={() => { setShowLocationMenu(!showLocationMenu); setShowTimerMenu(false); }}
-                className="btn btn-glass"
-                style={{ borderRadius: '50%', width: '42px', height: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: showLocationMenu ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }}
-              >
-                <MapPin size={18} />
+            <form onSubmit={handleSend} style={{display:'flex',gap:'0.4rem',alignItems:'center'}}>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowLocMenu(v=>!v); setShowTimerMenu(false); }}
+                style={{background:'var(--surface-color)',border:'1px solid var(--surface-border)',borderRadius:'50%',width:'34px',height:'34px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:showLocMenu?'var(--accent-color)':'var(--text-secondary)',flexShrink:0,transition:'color 0.2s'}}>
+                <MapPin size={15}/>
               </button>
-
-              <input 
-                type="text" 
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Type a message..."
-                className="input-field"
-                style={{ flex: 1, borderRadius: '999px', padding: '0.75rem 1.25rem' }}
-              />
-              <button 
-                type="submit" 
-                disabled={!inputText.trim()}
-                style={{ borderRadius: '50%', width: '44px', height: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: inputText.trim() ? 'var(--primary-color)' : 'var(--surface-color)', border: '1px solid var(--surface-border)', cursor: inputText.trim() ? 'pointer' : 'default', transition: 'all 0.2s', flexShrink: 0 }}
-              >
-                <Send size={18} color={inputText.trim() ? 'var(--bg-color)' : 'var(--text-secondary)'} />
+              <input ref={inputRef} type="text" value={inputText} onChange={e=>setInputText(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&handleSend(e)}
+                placeholder="Message…"
+                style={{flex:1,background:'var(--surface-color)',border:'1px solid var(--surface-border)',borderRadius:'20px',padding:'0.55rem 0.9rem',fontSize:'0.92rem',color:'var(--text-primary)',outline:'none',fontFamily:'inherit'}}/>
+              <button type="submit" disabled={!inputText.trim()}
+                style={{borderRadius:'50%',width:'34px',height:'34px',padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:inputText.trim()?'linear-gradient(135deg,#ff7675,#ffb142)':'var(--surface-color)',border:inputText.trim()?'none':'1px solid var(--surface-border)',cursor:inputText.trim()?'pointer':'default',transition:'all 0.2s',flexShrink:0}}>
+                <Send size={14} color={inputText.trim()?'#fff':'var(--text-secondary)'}/>
               </button>
             </form>
           </>

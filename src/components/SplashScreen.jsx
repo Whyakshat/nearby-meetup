@@ -9,7 +9,7 @@ const SplashScreen = ({ onComplete }) => {
     // Show the splash screen for 2 seconds (faster, more premium feel), then call onComplete
     const timer = setTimeout(() => {
       onCompleteRef.current();
-    }, 2000);
+    }, 1200);
     return () => clearTimeout(timer);
   }, []);
 

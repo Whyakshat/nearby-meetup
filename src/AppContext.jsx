@@ -166,30 +166,43 @@ export const AppProvider = ({ children }) => {
     };
   }, [currentUser, fetchLocation]);
 
-  // Poll for messages, requests, users, posts and meetups every 4 seconds when logged in
+  // Fast poll: messages + requests every 5 seconds (critical for real-time chat)
   useEffect(() => {
     if (!token) return;
 
-    const interval = setInterval(async () => {
+    const fastInterval = setInterval(async () => {
       try {
-        const [msgsData, reqsData, usersData, postsData, meetupsData] = await Promise.all([
+        const [msgsData, reqsData] = await Promise.all([
           authFetch('/messages'),
           authFetch('/requests'),
+        ]);
+        if (msgsData) setMessages(msgsData);
+        if (reqsData) setRequests(reqsData);
+      } catch (err) {
+        console.warn('Failed to poll messages/requests:', err);
+      }
+    }, 5000);
+
+    // Slow poll: users + posts + meetups every 30 seconds (less critical)
+    const slowInterval = setInterval(async () => {
+      try {
+        const [usersData, postsData, meetupsData] = await Promise.all([
           authFetch('/users'),
           authFetch('/posts'),
           authFetch('/meetups')
         ]);
-        if (msgsData) setMessages(msgsData);
-        if (reqsData) setRequests(reqsData);
         if (usersData) setRegisteredUsers(usersData);
         if (postsData) setPosts(postsData);
         if (meetupsData) setMeetups(meetupsData);
       } catch (err) {
-        console.warn('Failed to poll updates:', err);
+        console.warn('Failed to poll background data:', err);
       }
-    }, 4000);
+    }, 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(fastInterval);
+      clearInterval(slowInterval);
+    };
   }, [token, authFetch]);
 
   const updateSessionsList = useCallback((userSession) => {

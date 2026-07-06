@@ -1,74 +1,90 @@
-# Nearby Meetup (Full-Stack PWA)
+# Heyo — Nearby Social App
 
-A full-stack location-based social application with real-time features, built with **React, Vite, Node.js, Express, and Prisma (SQLite)**. It is configured as a **Progressive Web App (PWA)**, meaning you can install it on your iOS or Android device without going through an App Store.
+A full-stack location-based social app built with **React + Vite** (frontend) and **Node.js + Express + Prisma (SQLite)** (backend). Installable as a **Progressive Web App (PWA)** on iOS and Android.
 
-## Prerequisites
-- Node.js (v18+)
-- npm
+---
 
-## How to Run Locally
+## 🔑 Test Account
 
-### 1. Install Dependencies
-Install the root dependencies:
+Try the app instantly using this demo account:
+
+| Field    | Value               |
+|----------|---------------------|
+| Email    | `Testuser@heyo.com` |
+| Password | `heyo123`           |
+
+---
+
+## 🚀 Quick Start
+
+### 1. Install dependencies
 ```bash
 npm install
-```
-Install the backend dependencies:
-```bash
-cd server
-npm install
+cd server && npm install && cd ..
 ```
 
-### 2. Run the App
-From the root of the project, simply run:
+### 2. Run locally
 ```bash
 npm run start
 ```
-This single command will start **both** the React frontend (Vite) and the Node.js backend (Express) concurrently!
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:5000`
-
----
-
-## How to Install as a PWA (On your Phone)
-Because this app is a Progressive Web App, you can "install" it on your phone natively.
-
-### **iOS (iPhone / iPad)**
-1. Host the app online (e.g. Vercel, Netlify) or use something like `ngrok` to get an HTTPS link to your local server.
-2. Open the link in **Safari**.
-3. Tap the **Share** button at the bottom of the screen (the square with an arrow pointing up).
-4. Scroll down and tap **"Add to Home Screen"**.
-5. Tap **Add** in the top right corner.
-6. The app is now installed on your Home Screen with a custom icon. It will open in full-screen mode like a native app!
-
-### **Android**
-1. Open the app link in **Google Chrome**.
-2. Tap the **three dots menu** in the top right corner.
-3. Tap **"Install app"** or **"Add to Home screen"**.
-4. The app is now installed!
+Starts **both** frontend and backend:
+- Frontend: http://localhost:5173
+- Backend: http://localhost:5001
 
 ---
 
-## Architecture Overview
+## 📱 Install as PWA
+
+### iOS
+1. Open in **Safari**
+2. Tap **Share** → **Add to Home Screen** → **Add**
+
+### Android
+1. Open in **Chrome**
+2. Tap **⋮ menu** → **Install app**
+
+---
+
+## ✨ Features
+
+- 📍 **Nearby discovery** — map + card feed of people around you
+- 💬 **Real-time chat** — minimal iMessage-style messaging with date grouping
+- 🤝 **Connect requests** — send/accept/decline meetup invites
+- 📸 **Posts feed** — share photos and updates
+- 🗺️ **Live location sharing** — share your live location with a timer
+- 🤖 **AI Icebreakers** — generated conversation starters based on shared interests
+- 🔍 **AI Semantic Search** — find people by vibe
+- 🎯 **Group Meetups** — create or join open meetup events nearby
+- 🌙 **Dark mode** — full theme support
+- 🔒 **Private accounts** — control who can see your profile
+
+---
+
+## 🏗️ Architecture
 
 ### Frontend
-- **Framework**: React 19 + Vite
-- **Routing**: React Router DOM
-- **UI Icons**: Lucide React
-- **Map**: Leaflet + React Leaflet
-- **State**: React Context (`AppContext.jsx`) using Fetch API
-- **PWA**: `vite-plugin-pwa`
+- React 19 + Vite, React Router DOM v7
+- Lucide React, Framer Motion, Leaflet maps
+- PWA via vite-plugin-pwa
 
 ### Backend
-- **Server**: Node.js + Express
-- **Database**: SQLite (local file database at `server/dev.db`)
-- **ORM**: Prisma (schema defined in `server/prisma/schema.prisma`)
-- **Authentication**: JWT & bcrypt
+- Node.js + Express, Prisma ORM, SQLite
+- JWT + bcrypt authentication
+- OpenAI API (icebreakers + semantic search)
 
-### Changing the Database
-If you ever want to move from SQLite to a massive cloud database like **PostgreSQL**:
-1. Open `server/prisma/schema.prisma`.
-2. Change `provider = "sqlite"` to `provider = "postgresql"`.
-3. Update `DATABASE_URL` in `server/.env` to your PostgreSQL URL.
-4. Run `npx prisma db push`.
+---
+
+## 🗄️ Switch to PostgreSQL
+
+1. Edit `server/prisma/schema.prisma` — change provider to `postgresql`
+2. Set `DATABASE_URL` in `server/.env`
+3. Run `npx prisma db push`
+
+---
+
+## 🌐 Live App
+
+Deployed on **Vercel** (frontend) + **Render** (backend).
+
+> **Live URL**: https://heyo-dqrdhpnoq-akshat24.vercel.app
