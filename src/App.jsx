@@ -25,8 +25,8 @@ const BottomNav = () => {
 
   if (!currentUser) return null;
   
-  // Don't show bottom nav on auth or landing pages
-  if (['/', '/login', '/signup'].includes(location.pathname)) return null;
+  // Don't show bottom nav on auth, landing, or chat pages
+  if (['/', '/login', '/signup'].includes(location.pathname) || location.pathname.startsWith('/chat/')) return null;
 
   const unreadRequests = requests.filter(r => r.to?.id === currentUser.id && r.status === 'pending').length;
 

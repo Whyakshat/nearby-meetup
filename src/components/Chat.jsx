@@ -130,48 +130,143 @@ const Chat = () => {
     <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'var(--bg-color)',overflow:'hidden'}}>
 
       {/* Header */}
-      <div style={{paddingTop:'calc(0.8rem + env(safe-area-inset-top, 0px))',paddingBottom:'0.8rem',paddingLeft:'0.5rem',paddingRight:'1rem',borderBottom:'1px solid var(--surface-border)',display:'flex',alignItems:'center',gap:'0.6rem',background:'var(--bg-color)',backdropFilter:'blur(30px)',WebkitBackdropFilter:'blur(30px)',position:'sticky',top:0,zIndex:10}}>
-        <button onClick={() => navigate('/inbox')} style={{background:'none',border:'none',color:'var(--text-primary)',cursor:'pointer',display:'flex',alignItems:'center',padding:'0.4rem',borderRadius:'50%',flexShrink:0}}>
+      <div style={{
+        paddingTop:'calc(0.7rem + env(safe-area-inset-top, 0px))',
+        paddingBottom:'0.7rem',
+        paddingLeft:'0.75rem',
+        paddingRight:'1rem',
+        borderBottom:'1px solid var(--surface-border)',
+        display:'flex',
+        alignItems:'center',
+        gap:'0.75rem',
+        background:'var(--sticky-bg)',
+        backdropFilter:'blur(20px)',
+        WebkitBackdropFilter:'blur(20px)',
+        position:'sticky',
+        top:0,
+        zIndex:10
+      }}>
+        <button 
+          onClick={() => navigate('/inbox')} 
+          style={{
+            background:'none',
+            border:'none',
+            color:'var(--text-primary)',
+            cursor:'pointer',
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center',
+            width:'32px',
+            height:'32px',
+            borderRadius:'50%',
+            flexShrink:0
+          }}
+        >
           <ArrowLeft size={20}/>
         </button>
+        
         <div style={{position:'relative',flexShrink:0}}>
-          <img src={otherUser.avatar} alt={otherUser.name} style={{width:'36px',height:'36px',borderRadius:'50%',objectFit:'cover',display:'block',background:'var(--surface-border)'}}/>
-          {!isPending && <div style={{position:'absolute',bottom:0,right:0,width:'9px',height:'9px',borderRadius:'50%',background:'#34c759',border:'2px solid var(--bg-color)'}}/>}
+          <img 
+            src={otherUser.avatar} 
+            alt={otherUser.name} 
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              display: 'block',
+              border: '1px solid var(--surface-border)'
+            }}
+          />
+          {!isPending && (
+            <div style={{
+              position: 'absolute',
+              bottom: '1px',
+              right: '1px',
+              width: '9px',
+              height: '9px',
+              borderRadius: '50%',
+              background: '#2ed573',
+              border: '2px solid var(--bg-color)'
+            }}/>
+          )}
         </div>
+
         <div style={{flex:1,minWidth:0}}>
-          <h3 style={{margin:0,fontSize:'0.95rem',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{otherUser.name}</h3>
-          <p style={{margin:0,fontSize:'0.7rem',color:'var(--text-secondary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
-            {isPending?(isReceived?'Wants to connect':'Request sent'):request.activity}
+          <h3 style={{margin:0,fontSize:'0.95rem',fontWeight:600,color:'var(--text-primary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+            {otherUser.name}
+          </h3>
+          <p style={{margin:'1px 0 0 0',fontSize:'0.72rem',color:'var(--text-secondary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+            {isPending ? (isReceived ? 'wants to connect' : 'request sent') : request.activity}
           </p>
         </div>
       </div>
 
-      {/* Messages */}
-      <div style={{flex:1,overflowY:'auto',padding:'0.5rem 0.875rem',display:'flex',flexDirection:'column',paddingBottom:isPending?'100px':'80px'}} onClick={() => setShowLocMenu(false)}>
-
+      {/* Messages Feed */}
+      <div 
+        style={{
+          flex:1,
+          overflowY:'auto',
+          padding:'1rem 1rem',
+          display:'flex',
+          flexDirection:'column',
+          gap:'0.35rem',
+          paddingBottom:'100px'
+        }} 
+        onClick={() => setShowLocMenu(false)}
+      >
         {isPending ? (
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'0.5rem',padding:'3rem 1.5rem',textAlign:'center'}}>
-            <img src={otherUser.avatar} alt="" style={{width:'60px',height:'60px',borderRadius:'50%',objectFit:'cover',border:'2px solid var(--surface-border)'}}/>
-            <div style={{fontWeight:600,fontSize:'0.98rem',color:'var(--text-primary)'}}>{otherUser.name}</div>
-            <div style={{fontSize:'0.82rem',color:'var(--text-secondary)',lineHeight:1.5}}>
-              {isReceived?<>Wants to meet — <strong>"{request.activity}"</strong></>:<>You asked — <strong>"{request.activity}"</strong></>}
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'0.75rem',padding:'4rem 2rem',textAlign:'center'}}>
+            <img 
+              src={otherUser.avatar} 
+              alt="" 
+              style={{
+                width: '70px',
+                height: '70px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid var(--surface-border)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+              }}
+            />
+            <div style={{fontWeight:600,fontSize:'1.1rem',color:'var(--text-primary)'}}>{otherUser.name}</div>
+            <div style={{fontSize:'0.88rem',color:'var(--text-secondary)',lineHeight:1.4,maxWidth:'280px'}}>
+              {isReceived ? (
+                <>Wants to connect to go for <span style={{fontWeight:500,color:'var(--text-primary)'}}>"{request.activity}"</span></>
+              ) : (
+                <>You sent a request to connect for <span style={{fontWeight:500,color:'var(--text-primary)'}}>"{request.activity}"</span></>
+              )}
             </div>
-            <div style={{fontSize:'0.72rem',color:'var(--text-secondary)',opacity:0.6}}>
-              {isReceived?'Respond below to start chatting.':'Waiting for their response.'}
+            <div style={{fontSize:'0.75rem',color:'var(--text-secondary)',opacity:0.6,marginTop:'0.25rem'}}>
+              {isReceived ? 'Accept request below to start chatting.' : 'Waiting for their response.'}
             </div>
           </div>
         ) : (
           <>
             {showIce && icebreakers.length > 0 && chatMessages.length === 0 && (
-              <div style={{padding:'0.75rem 0 1rem'}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'0.4rem'}}>
-                  <span style={{fontSize:'0.68rem',fontWeight:600,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px'}}>✨ Suggestions</span>
-                  <button onClick={() => setShowIce(false)} style={{background:'none',border:'none',color:'var(--text-secondary)',fontSize:'0.68rem',cursor:'pointer',padding:0}}>Dismiss</button>
+              <div style={{padding:'0.5rem 0 1rem'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent: 'space-between',marginBottom:'0.5rem'}}>
+                  <span style={{fontSize:'0.7rem',fontWeight:600,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px'}}>💡 Conversation Starters</span>
+                  <button onClick={() => setShowIce(false)} style={{background:'none',border:'none',color:'var(--text-secondary)',fontSize:'0.7rem',cursor:'pointer',padding:0}}>Dismiss</button>
                 </div>
-                <div className="hide-scrollbar" style={{display:'flex',gap:'0.4rem',overflowX:'auto'}}>
+                <div className="hide-scrollbar" style={{display:'flex',gap:'0.45rem',overflowX:'auto',paddingBottom:'0.25rem'}}>
                   {icebreakers.map((b,i) => (
-                    <button key={i} onClick={() => { setInputText(b); inputRef.current?.focus(); }}
-                      style={{background:'var(--surface-color)',border:'1px solid var(--surface-border)',color:'var(--text-primary)',padding:'0.35rem 0.7rem',borderRadius:'999px',fontSize:'0.75rem',whiteSpace:'nowrap',cursor:'pointer',flexShrink:0}}>
+                    <button 
+                      key={i} 
+                      onClick={() => { setInputText(b); inputRef.current?.focus(); }}
+                      style={{
+                        background:'var(--surface-color)',
+                        border:'1px solid var(--surface-border)',
+                        color:'var(--text-primary)',
+                        padding:'0.45rem 0.85rem',
+                        borderRadius:'999px',
+                        fontSize:'0.78rem',
+                        whiteSpace:'nowrap',
+                        cursor:'pointer',
+                        flexShrink:0,
+                        transition:'all 0.15s ease'
+                      }}
+                    >
                       {b}
                     </button>
                   ))}
@@ -180,18 +275,29 @@ const Chat = () => {
             )}
 
             {chatMessages.length === 0 && (!showIce || icebreakers.length === 0) && (
-              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'0.4rem',padding:'3rem 1.5rem',textAlign:'center',color:'var(--text-secondary)'}}>
-                <img src={otherUser.avatar} alt="" style={{width:'48px',height:'48px',borderRadius:'50%',objectFit:'cover',border:'2px solid var(--surface-border)',marginBottom:'0.2rem'}}/>
-                <p style={{fontWeight:500,fontSize:'0.9rem',color:'var(--text-primary)',margin:0}}>Say hi to {otherUser?.name?.split(' ')[0]||'them'}!</p>
-                <p style={{fontSize:'0.75rem',opacity:0.6,margin:0}}>via {request.activity}</p>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'0.5rem',padding:'4rem 2rem',textAlign:'center',color:'var(--text-secondary)'}}>
+                <img 
+                  src={otherUser.avatar} 
+                  alt="" 
+                  style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '1.5px solid var(--surface-border)',
+                    marginBottom: '0.25rem'
+                  }}
+                />
+                <p style={{fontWeight:600,fontSize:'0.95rem',color:'var(--text-primary)',margin:0}}>Say hello to {otherUser?.name?.split(' ')[0] || 'them'}!</p>
+                <p style={{fontSize:'0.78rem',opacity:0.6,margin:0}}>Connected via "{request.activity}"</p>
               </div>
             )}
 
             {grouped.map((item, idx) => {
               if (item.type === 'date') {
                 return (
-                  <div key={item.key} style={{display:'flex',justifyContent:'center',padding:'0.75rem 0 0.4rem'}}>
-                    <span style={{fontSize:'0.67rem',color:'var(--text-secondary)',background:'var(--surface-color)',border:'1px solid var(--surface-border)',padding:'0.18rem 0.6rem',borderRadius:'999px',fontWeight:500}}>
+                  <div key={item.key} style={{display:'flex',justifyContent:'center',padding:'1rem 0 0.5rem'}}>
+                    <span style={{fontSize:'0.7rem',color:'var(--text-secondary)',fontWeight:500,letterSpacing:'0.2px'}}>
                       {item.label}
                     </span>
                   </div>
@@ -203,21 +309,38 @@ const Chat = () => {
               const nextItem = grouped[idx+1];
               const nextMsg = nextItem?.type === 'msg' ? nextItem.data : null;
               const isLast = !nextMsg || nextMsg.senderId !== msg.senderId;
+
+              // Tail border-radius styling
+              const radius = isMe 
+                ? `16px 16px ${isLast ? '4px' : '16px'} 16px` 
+                : `16px 16px 16px ${isLast ? '4px' : '16px'}`;
+
               return (
-                <div key={msg.id} style={{display:'flex',justifyContent:isMe?'flex-end':'flex-start',marginBottom:isLast?'0.45rem':'2px',paddingLeft:isMe?'3rem':'0',paddingRight:isMe?'0':'3rem'}}>
-                  <div style={{display:'flex',flexDirection:'column',alignItems:isMe?'flex-end':'flex-start',gap:'2px',maxWidth:'100%'}}>
+                <div 
+                  key={msg.id} 
+                  style={{
+                    display:'flex',
+                    justifyContent:isMe?'flex-end':'flex-start',
+                    marginBottom:isLast?'0.5rem':'1px',
+                    paddingLeft:isMe?'3.5rem':'0',
+                    paddingRight:isMe?'0':'3.5rem'
+                  }}
+                >
+                  <div style={{display:'flex',flexDirection:'column',alignItems:isMe?'flex-end':'flex-start',gap:'1px',maxWidth:'100%'}}>
                     <div style={{
-                      background:isMe?'linear-gradient(135deg,#ff7675,#ffb142)':'var(--surface-color)',
-                      color:isMe?'#fff':'var(--text-primary)',
-                      padding:isLoc?'0':'0.5rem 0.8rem',
-                      borderRadius:isMe?`18px 18px ${isLast?'5px':'18px'} 18px`:`18px 18px 18px ${isLast?'5px':'18px'}`,
-                      border:!isMe?'1px solid var(--surface-border)':'none',
-                      overflow:'hidden',wordBreak:'break-word'
+                      background:isMe ? '#007aff' : 'var(--surface-color)',
+                      color:isMe ? '#ffffff' : 'var(--text-primary)',
+                      padding:isLoc ? '0' : '0.55rem 0.9rem',
+                      borderRadius:radius,
+                      border:(!isMe && !isLoc) ? '1px solid var(--surface-border)' : 'none',
+                      overflow:'hidden',
+                      wordBreak:'break-word',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                     }}>
-                      {isLoc?renderLocMsg(msg):<span style={{fontSize:'0.92rem',lineHeight:1.4}}>{msg.content||msg.text}</span>}
+                      {isLoc ? renderLocMsg(msg) : <span style={{fontSize:'0.92rem',lineHeight:1.45}}>{msg.content||msg.text}</span>}
                     </div>
                     {isLast && (
-                      <span style={{fontSize:'0.62rem',color:'var(--text-secondary)',opacity:0.5,padding:isMe?'0 2px 0 0':'0 0 0 2px'}}>
+                      <span style={{fontSize:'0.65rem',color:'var(--text-secondary)',opacity:0.5,marginTop:'2px',padding:isMe?'0 4px 0 0':'0 0 0 4px'}}>
                         {formatMsgTime(msg.timestamp)}
                       </span>
                     )}
@@ -230,54 +353,172 @@ const Chat = () => {
         <div ref={endRef}/>
       </div>
 
-      {/* Input */}
-      <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'480px',paddingTop:'0.45rem',paddingLeft:'0.75rem',paddingRight:'0.75rem',paddingBottom:'calc(0.55rem + env(safe-area-inset-bottom, 0px))',background:'var(--bg-color)',backdropFilter:'blur(30px)',WebkitBackdropFilter:'blur(30px)',borderTop:'1px solid var(--surface-border)',zIndex:10}}>
+      {/* Floating Chat Input bar / Accept Buttons */}
+      <div style={{
+        position:'fixed',
+        bottom:0,
+        left:'50%',
+        transform:'translateX(-50%)',
+        width:'100%',
+        maxWidth:'480px',
+        paddingLeft:'0.75rem',
+        paddingRight:'0.75rem',
+        paddingBottom:'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
+        paddingTop:'0.5rem',
+        background:'var(--bg-color)',
+        borderTop:'1px solid var(--surface-border)',
+        zIndex:10
+      }}>
         {isPending ? (
           isReceived ? (
-            <div style={{display:'flex',gap:'0.6rem'}}>
-              <button onClick={() => respondToRequest(request.id,'accepted')} style={{flex:1,background:'#007AFF',color:'white',border:'none',padding:'0.65rem',borderRadius:'11px',fontSize:'0.88rem',fontWeight:600,cursor:'pointer'}}>Accept</button>
-              <button onClick={() => { respondToRequest(request.id,'declined'); navigate('/inbox'); }} style={{flex:1,background:'var(--surface-color)',color:'var(--text-secondary)',border:'1px solid var(--surface-border)',padding:'0.65rem',borderRadius:'11px',fontSize:'0.88rem',fontWeight:600,cursor:'pointer'}}>Decline</button>
+            <div style={{display:'flex',gap:'0.5rem',width:'100%'}}>
+              <button 
+                onClick={() => respondToRequest(request.id,'accepted')} 
+                style={{
+                  flex:1,
+                  background:'#007AFF',
+                  color:'white',
+                  border:'none',
+                  padding:'0.75rem',
+                  borderRadius:'12px',
+                  fontSize:'0.9rem',
+                  fontWeight:600,
+                  cursor:'pointer',
+                  boxShadow:'0 4px 12px rgba(0, 122, 255, 0.2)'
+                }}
+              >
+                Accept Connection
+              </button>
+              <button 
+                onClick={() => { respondToRequest(request.id,'declined'); navigate('/inbox'); }} 
+                style={{
+                  flex:1,
+                  background:'var(--surface-color)',
+                  color:'var(--text-secondary)',
+                  border:'1px solid var(--surface-border)',
+                  padding:'0.75rem',
+                  borderRadius:'12px',
+                  fontSize:'0.9rem',
+                  fontWeight:600,
+                  cursor:'pointer'
+                }}
+              >
+                Decline
+              </button>
             </div>
           ) : (
-            <div style={{textAlign:'center',padding:'0.6rem',color:'var(--text-secondary)',fontSize:'0.82rem'}}>
-              ⏳ Waiting for {otherUser?.name?.split(' ')[0]||'them'} to accept.
+            <div style={{
+              textAlign:'center',
+              padding:'0.6rem',
+              color:'var(--text-secondary)',
+              fontSize:'0.85rem',
+              fontWeight:500,
+              background:'var(--surface-color)',
+              borderRadius:'12px',
+              border:'1px solid var(--surface-border)'
+            }}>
+              ⏳ Waiting for {otherUser?.name?.split(' ')[0]||'them'} to connect
             </div>
           )
         ) : (
           <>
             {showLocMenu && (
-              <div style={{position:'absolute',bottom:'100%',left:'0.75rem',background:'var(--bg-color)',border:'1px solid var(--surface-border)',borderRadius:'14px',padding:'0.35rem',marginBottom:'0.4rem',boxShadow:'0 6px 20px rgba(0,0,0,0.1)',minWidth:'175px'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0.25rem 0.45rem',borderBottom:'1px solid var(--surface-border)',marginBottom:'0.15rem'}}>
-                  <span style={{fontSize:'0.75rem',fontWeight:600}}>Share Location</span>
+              <div style={{
+                position:'absolute',
+                bottom:'100%',
+                left:'0.75rem',
+                background:'var(--bg-color)',
+                border:'1px solid var(--surface-border)',
+                borderRadius:'16px',
+                padding:'0.4rem',
+                marginBottom:'0.5rem',
+                boxShadow:'0 8px 24px rgba(0,0,0,0.12)',
+                minWidth:'190px',
+                zIndex:12
+              }}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0.3rem 0.5rem 0.4rem',borderBottom:'1px solid var(--surface-border)',marginBottom:'0.2rem'}}>
+                  <span style={{fontSize:'0.78rem',fontWeight:600}}>Share Location</span>
                   <button onClick={() => { setShowLocMenu(false); setShowTimerMenu(false); }} style={{background:'none',border:'none',color:'var(--text-secondary)',cursor:'pointer',display:'flex'}}><X size={12}/></button>
                 </div>
                 {!showTimerMenu ? (
                   <>
-                    <button onClick={() => handleSendLoc('location_static')} style={{width:'100%',background:'transparent',border:'none',padding:'0.55rem 0.45rem',textAlign:'left',borderRadius:'7px',cursor:'pointer',display:'flex',alignItems:'center',gap:'0.35rem',color:'var(--text-primary)',fontSize:'0.82rem'}}><MapPin size={12}/>Current Location</button>
-                    <button onClick={() => setShowTimerMenu(true)} style={{width:'100%',background:'transparent',border:'none',padding:'0.55rem 0.45rem',textAlign:'left',borderRadius:'7px',cursor:'pointer',display:'flex',alignItems:'center',gap:'0.35rem',color:'var(--accent-color)',fontSize:'0.82rem',fontWeight:500}}><MapPin size={12}/>Live Location…</button>
+                    <button onClick={() => handleSendLoc('location_static')} style={{width:'100%',background:'transparent',border:'none',padding:'0.6rem 0.5rem',textAlign:'left',borderRadius:'8px',cursor:'pointer',display:'flex',alignItems:'center',gap:'0.45rem',color:'var(--text-primary)',fontSize:'0.85rem'}}><MapPin size={13}/>Current Location</button>
+                    <button onClick={() => setShowTimerMenu(true)} style={{width:'100%',background:'transparent',border:'none',padding:'0.6rem 0.5rem',textAlign:'left',borderRadius:'8px',cursor:'pointer',display:'flex',alignItems:'center',gap:'0.45rem',color:'#007aff',fontSize:'0.85rem',fontWeight:600}}><MapPin size={13}/>Live Location…</button>
                   </>
                 ) : (
                   <>
-                    <p style={{fontSize:'0.7rem',color:'var(--text-secondary)',padding:'0 0.45rem',margin:'0 0 0.15rem'}}>Share for how long?</p>
-                    {[{label:'15 min',val:15},{label:'1 hour',val:60},{label:'8 hours',val:480}].map(({label,val}) => (
-                      <button key={val} onClick={() => handleSendLoc('location_live',val)} style={{width:'100%',background:'transparent',border:'none',padding:'0.55rem 0.45rem',textAlign:'left',borderRadius:'7px',cursor:'pointer',color:'var(--text-primary)',fontSize:'0.82rem'}}>{label}</button>
+                    <p style={{fontSize:'0.72rem',color:'var(--text-secondary)',padding:'0 0.5rem 0.2rem',margin:0}}>Share for how long?</p>
+                    {[{label:'15 minutes',val:15},{label:'1 hour',val:60},{label:'8 hours',val:480}].map(({label,val}) => (
+                      <button key={val} onClick={() => handleSendLoc('location_live',val)} style={{width:'100%',background:'transparent',border:'none',padding:'0.55rem 0.5rem',textAlign:'left',borderRadius:'8px',cursor:'pointer',color:'var(--text-primary)',fontSize:'0.85rem'}}>{label}</button>
                     ))}
                   </>
                 )}
               </div>
             )}
-            <form onSubmit={handleSend} style={{display:'flex',gap:'0.4rem',alignItems:'center'}}>
-              <button type="button" onClick={(e) => { e.stopPropagation(); setShowLocMenu(v=>!v); setShowTimerMenu(false); }}
-                style={{background:'var(--surface-color)',border:'1px solid var(--surface-border)',borderRadius:'50%',width:'34px',height:'34px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:showLocMenu?'var(--accent-color)':'var(--text-secondary)',flexShrink:0,transition:'color 0.2s'}}>
-                <MapPin size={15}/>
+            
+            <form onSubmit={handleSend} style={{display:'flex',gap:'0.5rem',alignItems:'center'}}>
+              <button 
+                type="button" 
+                onClick={(e) => { e.stopPropagation(); setShowLocMenu(v=>!v); setShowTimerMenu(false); }}
+                style={{
+                  background:'var(--surface-color)',
+                  border:'1px solid var(--surface-border)',
+                  borderRadius:'50%',
+                  width:'36px',
+                  height:'36px',
+                  display:'flex',
+                  alignItems:'center',
+                  justifyContent:'center',
+                  cursor:'pointer',
+                  color:showLocMenu?'#007aff':'var(--text-secondary)',
+                  flexShrink:0,
+                  transition:'all 0.2s ease'
+                }}
+              >
+                <MapPin size={16}/>
               </button>
-              <input ref={inputRef} type="text" value={inputText} onChange={e=>setInputText(e.target.value)}
+              
+              <input 
+                ref={inputRef} 
+                type="text" 
+                value={inputText} 
+                onChange={e=>setInputText(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&handleSend(e)}
                 placeholder="Message…"
-                style={{flex:1,background:'var(--surface-color)',border:'1px solid var(--surface-border)',borderRadius:'20px',padding:'0.55rem 0.9rem',fontSize:'0.92rem',color:'var(--text-primary)',outline:'none',fontFamily:'inherit'}}/>
-              <button type="submit" disabled={!inputText.trim()}
-                style={{borderRadius:'50%',width:'34px',height:'34px',padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:inputText.trim()?'linear-gradient(135deg,#ff7675,#ffb142)':'var(--surface-color)',border:inputText.trim()?'none':'1px solid var(--surface-border)',cursor:inputText.trim()?'pointer':'default',transition:'all 0.2s',flexShrink:0}}>
-                <Send size={14} color={inputText.trim()?'#fff':'var(--text-secondary)'}/>
+                style={{
+                  flex:1,
+                  background:'var(--surface-color)',
+                  border:'1px solid var(--surface-border)',
+                  borderRadius:'24px',
+                  padding:'0.55rem 1rem',
+                  fontSize:'0.9rem',
+                  color:'var(--text-primary)',
+                  outline:'none',
+                  fontFamily:'inherit',
+                  transition:'all 0.2s ease'
+                }}
+              />
+              
+              <button 
+                type="submit" 
+                disabled={!inputText.trim()}
+                style={{
+                  borderRadius:'50%',
+                  width:'36px',
+                  height:'36px',
+                  padding:0,
+                  display:'flex',
+                  alignItems:'center',
+                  justifyContent:'center',
+                  background:inputText.trim() ? '#007aff' : 'var(--surface-color)',
+                  border:inputText.trim() ? 'none' : '1px solid var(--surface-border)',
+                  cursor:inputText.trim()?'pointer':'default',
+                  transition:'all 0.2s ease',
+                  flexShrink:0,
+                  boxShadow: inputText.trim() ? '0 2px 8px rgba(0, 122, 255, 0.25)' : 'none'
+                }}
+              >
+                <Send size={15} color={inputText.trim()?'#ffffff':'var(--text-secondary)'}/>
               </button>
             </form>
           </>
