@@ -53,6 +53,7 @@ const Profile = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState('posts'); // 'posts' or 'archived'
   const [selectedPost, setSelectedPost] = useState(null); // For post detail modal
+  const [showStatModal, setShowStatModal] = useState(null); // null | 'connections' | 'meetups'
   
   const [name, setName] = useState(profileUser?.name || '');
   const [username, setUsername] = useState(profileUser?.username || (profileUser?.email ? profileUser.email.split('@')[0] : ''));
@@ -338,11 +339,17 @@ const Profile = () => {
               <div style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{myPosts.length}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '0.15rem' }}>posts</div>
             </div>
-            <div>
+            <div
+              onClick={() => setShowStatModal('meetups')}
+              style={{ cursor: 'pointer' }}
+            >
               <div style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{myMeetupsCount}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '0.15rem' }}>meetups</div>
             </div>
-            <div>
+            <div
+              onClick={() => setShowStatModal('connections')}
+              style={{ cursor: 'pointer' }}
+            >
               <div style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{myConnectionsCount}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginTop: '0.15rem' }}>connections</div>
             </div>
@@ -972,6 +979,133 @@ const Profile = () => {
         {showSettings && (
           <Settings onClose={() => setShowSettings(false)} />
         )}
+      </AnimatePresence>
+
+      {/* ── Stat Modal Sheet (Connections / Meetups) ── */}
+      <AnimatePresence>
+        {showStatModal && (() => {
+          const isConnModal = showStatModal === 'connections';
+
+          // Build the connections list for this profile user
+          const connectionsList = isConnModal
+            ? requests
+                .filter(r =>
+                  r.status === 'accepted' &&
+                  (r.fromId === profileUser.id || r.toId === profileUser.id)
+                )
+                .map(r => {
+                  const otherId = r.fromId === profileUser.id ? r.toId : r.fromId;
+                  const user = registeredUsers.find(u => u.id === otherId) || r.from || r.to || { name: 'Unknown', avatar: '/default-avatar.svg', id: otherId };
+                  return { user, requestId: r.id };
+                })
+            : [];
+
+          // Build the meetups list for this profile user
+          const meetupsList = !isConnModal
+            ? meetups.filter(m => m.authorId === profileUser.id)
+            : [];
+
+          const items = isConnModal ? connectionsList : meetupsList;
+
+          return (
+            <motion.div
+              key="stat-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99990, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+              onClick={() => setShowStatModal(null)}
+            >
+              <motion.div
+                key="stat-sheet"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+                style={{ width: '100%', maxWidth: '480px', background: 'var(--bg-color)', borderRadius: '24px 24px 0 0', borderTop: '1px solid var(--surface-border)', maxHeight: '75vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 'env(safe-area-inset-bottom)' }}
+                onClick={e => e.stopPropagation()}
+              >
+                {/* Handle bar */}
+                <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '0.75rem', paddingBottom: '0.5rem' }}>
+                  <div style={{ width: '36px', height: '4px', borderRadius: '999px', background: 'var(--surface-border)' }} />
+                </div>
+
+                {/* Title */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 1.25rem 0.75rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
+                    {isConnModal ? `Connections · ${connectionsList.length}` : `Meetups · ${meetupsList.length}`}
+                  </h3>
+                  <button onClick={() => setShowStatModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem', display: 'flex' }}>
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* List */}
+                <div style={{ overflowY: 'auto', flex: 1 }}>
+                  {items.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                      {isConnModal ? 'No connections yet.' : 'No meetups created yet.'}
+                    </div>
+                  ) : isConnModal ? (
+                    connectionsList.map(({ user, requestId }) => (
+                      <div key={requestId} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.7rem 1.25rem', borderBottom: '1px solid var(--surface-border)' }}>
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          onClick={() => { setShowStatModal(null); navigate(`/profile/${user.id}`); }}
+                          style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer', border: '1px solid var(--surface-border)' }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            onClick={() => { setShowStatModal(null); navigate(`/profile/${user.id}`); }}
+                            style={{ fontWeight: 600, fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+                          >
+                            {user.name}
+                          </div>
+                          {user.username && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>@{user.username}</div>
+                          )}
+                        </div>
+                        {/* Only show Message button if current user is one of them */}
+                        {(currentUser.id === profileUser.id || currentUser.id === user.id) && (
+                          <button
+                            onClick={() => { setShowStatModal(null); navigate(`/chat/${requestId}`); }}
+                            style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', color: 'var(--text-primary)', borderRadius: '8px', padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+                          >
+                            Message
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    meetupsList.map(meetup => {
+                      const joinedCount = Array.isArray(meetup.joinedParticipants) ? meetup.joinedParticipants.length : 0;
+                      const isFull = joinedCount >= meetup.maxParticipants;
+                      return (
+                        <div key={meetup.id} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.85rem 1.25rem', borderBottom: '1px solid var(--surface-border)' }}>
+                          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--surface-color)', border: '1px solid var(--surface-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+                            🎯
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {meetup.activity}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
+                              {joinedCount}/{meetup.maxParticipants} joined
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '999px', background: meetup.status === 'open' ? 'rgba(46,213,115,0.12)' : 'rgba(0,0,0,0.06)', color: meetup.status === 'open' ? '#2ed573' : 'var(--text-secondary)', border: `1px solid ${meetup.status === 'open' ? 'rgba(46,213,115,0.3)' : 'var(--surface-border)'}`, flexShrink: 0 }}>
+                            {meetup.status === 'open' ? 'Open' : 'Closed'}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
     </div>
   );
