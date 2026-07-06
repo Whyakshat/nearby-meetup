@@ -111,4 +111,4 @@ npm run start
 
 Deployed on **Vercel** (frontend) + **Render** (backend).
 
-> **Live URL**: https://heyo-dqrdhpnoq-akshat24.vercel.app
+> **Live URL**: heyo-mbkm6hwzd-akshat24.vercel.app
