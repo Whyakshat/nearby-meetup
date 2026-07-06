@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../AppContext';
-import { Send, MoreHorizontal, ShieldAlert, Lock, CheckCircle2, Eye } from 'lucide-react';
+import { Send, MoreHorizontal, ShieldAlert, Lock, CheckCircle2, Eye, X } from 'lucide-react';
 
 const UserCard = ({ user, onOpenPosts }) => {
-  const { sendRequest, blockUser, requests, currentUser, posts } = useAppContext();
+  const { sendRequest, blockUser, cancelRequest, requests, currentUser, posts } = useAppContext();
   const [customMsg, setCustomMsg] = useState('');
   const [showOptions, setShowOptions] = useState(false);
 
@@ -22,12 +22,13 @@ const UserCard = ({ user, onOpenPosts }) => {
      (req.from?.id === user.id && req.to?.id === currentUser.id))
   );
 
-  // Check if request already pending
-  const hasPendingRequest = requests.some(req =>
+  // Check if request already pending (sent by current user)
+  const pendingRequest = requests.find(req =>
     req.status === 'pending' &&
-    ((req.from?.id === currentUser.id && req.to?.id === user.id) ||
-     (req.from?.id === user.id && req.to?.id === currentUser.id))
+    req.from?.id === currentUser.id &&
+    req.to?.id === user.id
   );
+  const hasPendingRequest = !!pendingRequest;
 
   const isLocked = user.isPrivate && !isConnected;
   const userPosts = posts.filter(p => p.authorId === user.id && !p.isArchived)
@@ -128,48 +129,59 @@ const UserCard = ({ user, onOpenPosts }) => {
         style={{ padding: '0.5rem' }} 
         onClick={(e) => e.stopPropagation()}
       >
-        <form onSubmit={handleSendRequest} style={{ display: 'flex', gap: '0.5rem', width: '100%', alignItems: 'center' }}>
-          <input 
-            type="text" 
-            placeholder={hasPendingRequest ? 'Request pending...' : 'Send an invite...'} 
-            value={customMsg}
-            onChange={(e) => setCustomMsg(e.target.value)}
-            disabled={hasPendingRequest}
-            style={{ 
-              flex: 1, 
-              background: 'transparent', 
-              border: 'none', 
-              padding: '0 1rem', 
-              color: 'white',
-              outline: 'none',
-              fontSize: '0.9rem',
-              caretColor: 'white',
-              '::placeholder': { color: 'rgba(255,255,255,0.6)' }
-            }}
-          />
-          <button 
-            type="submit"
-            disabled={!customMsg.trim() || hasPendingRequest}
-            style={{ 
-              background: hasPendingRequest ? 'rgba(255,255,255,0.2)' : 'white', 
-              color: hasPendingRequest ? 'rgba(255,255,255,0.6)' : '#000000', 
-              border: 'none', 
-              borderRadius: '999px', 
-              padding: '0.6rem 1.25rem', 
-              fontSize: '0.85rem', 
-              fontWeight: 600, 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.4rem', 
-              cursor: hasPendingRequest ? 'not-allowed' : 'pointer',
-              flexShrink: 0,
-              transition: 'all 0.2s',
-              opacity: hasPendingRequest ? 0.7 : 1
-            }}
-          >
-            {hasPendingRequest ? 'Pending' : <><Send size={13} /> Request</>}
-          </button>
-        </form>
+        {hasPendingRequest ? (
+          // Show Pending + Cancel split
+          <div style={{ display: 'flex', gap: '0.5rem', width: '100%', alignItems: 'center', padding: '0 0.5rem' }}>
+            <span style={{ flex: 1, color: 'rgba(255,255,255,0.7)', fontSize: '0.88rem', fontWeight: 500 }}>Request pending…</span>
+            <button
+              onClick={() => cancelRequest(pendingRequest.id)}
+              style={{ background: 'rgba(255,71,87,0.25)', border: '1px solid rgba(255,71,87,0.5)', color: '#ff6b7a', borderRadius: '999px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0, transition: 'all 0.2s' }}
+            >
+              <X size={13} /> Cancel
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSendRequest} style={{ display: 'flex', gap: '0.5rem', width: '100%', alignItems: 'center' }}>
+            <input 
+              type="text" 
+              placeholder="Send an invite…" 
+              value={customMsg}
+              onChange={(e) => setCustomMsg(e.target.value)}
+              style={{ 
+                flex: 1, 
+                background: 'transparent', 
+                border: 'none', 
+                padding: '0 1rem', 
+                color: 'white',
+                outline: 'none',
+                fontSize: '0.9rem',
+                caretColor: 'white',
+              }}
+            />
+            <button 
+              type="submit"
+              disabled={!customMsg.trim()}
+              style={{ 
+                background: 'white', 
+                color: '#000000', 
+                border: 'none', 
+                borderRadius: '999px', 
+                padding: '0.6rem 1.25rem', 
+                fontSize: '0.85rem', 
+                fontWeight: 600, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.4rem', 
+                cursor: customMsg.trim() ? 'pointer' : 'not-allowed',
+                flexShrink: 0,
+                transition: 'all 0.2s',
+                opacity: customMsg.trim() ? 1 : 0.5
+              }}
+            >
+              <Send size={13} /> Request
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

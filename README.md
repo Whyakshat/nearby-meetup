@@ -6,8 +6,6 @@ A full-stack location-based social app built with **React + Vite** (frontend) an
 
 ## 🔑 Test Account
 
-Try the app instantly using this demo account:
-
 | Field    | Value               |
 |----------|---------------------|
 | Email    | `Testuser@heyo.com` |
@@ -17,47 +15,71 @@ Try the app instantly using this demo account:
 
 ## 🚀 Quick Start
 
-### 1. Install dependencies
 ```bash
 npm install
 cd server && npm install && cd ..
-```
-
-### 2. Run locally
-```bash
 npm run start
 ```
 
-Starts **both** frontend and backend:
-- Frontend: http://localhost:5173
+- Frontend: http://localhost:5173  
 - Backend: http://localhost:5001
 
 ---
 
 ## 📱 Install as PWA
 
-### iOS
-1. Open in **Safari**
-2. Tap **Share** → **Add to Home Screen** → **Add**
-
-### Android
-1. Open in **Chrome**
-2. Tap **⋮ menu** → **Install app**
+**iOS**: Safari → Share → Add to Home Screen  
+**Android**: Chrome → ⋮ menu → Install app
 
 ---
 
-## ✨ Features
+## ✨ Full Feature List
 
-- 📍 **Nearby discovery** — map + card feed of people around you
-- 💬 **Real-time chat** — minimal iMessage-style messaging with date grouping
-- 🤝 **Connect requests** — send/accept/decline meetup invites
-- 📸 **Posts feed** — share photos and updates
-- 🗺️ **Live location sharing** — share your live location with a timer
-- 🤖 **AI Icebreakers** — generated conversation starters based on shared interests
-- 🔍 **AI Semantic Search** — find people by vibe
-- 🎯 **Group Meetups** — create or join open meetup events nearby
-- 🌙 **Dark mode** — full theme support
-- 🔒 **Private accounts** — control who can see your profile
+### 🗺️ Nearby Discovery
+- See people near you on a card feed or interactive map
+- Filter by interests (Coffee, Design, Music, Gaming, etc.)
+- AI Semantic Search — search by vibe (e.g. "someone into coffee and design")
+
+### 💬 Messaging & Connections
+- Send connection requests with a custom invite message
+- **Cancel a pending request** you sent by mistake (Cancel button on card)
+- Accept / Decline incoming requests from Inbox or the 🔔 notification bell
+- After accepting → **auto-redirects to the chat screen**
+- Real-time iMessage-style chat with date grouping and message tails
+- Location sharing (static snapshot or live with 15min / 1hr / 8hr timer)
+- AI Icebreakers — generated conversation starters based on shared interests
+
+### 🔔 Notification Bell (Home page)
+- Small bell icon in top-right corner of the Nearby screen
+- Shows all pending connection requests with Accept / Decline inline
+- Accepting auto-navigates to the chat with that person
+
+### 🎯 Group Meetups
+- Browse open meetup events in your area
+- Create meetups with AI-suggested activity ideas
+- Join meetups — sends a request to the meetup creator
+- **Meetup creators see incoming join requests** directly on their meetup card
+- Accept a join request → opens chat with that person
+- Cancel a pending join request with one tap
+
+### 📸 Posts
+- Create posts with text and/or images
+- View others' posts on their profile card
+- Archive or delete your own posts
+
+### 👤 Profile
+- Customizable bio, interests, avatar
+- Private account mode (blur profile until connected)
+- Multi-account support (switch between accounts)
+- Google sign-in with OTP verification
+- Password reset via email
+
+### 🎨 UI / UX
+- Dark mode / Light mode toggle
+- Smooth splash screen on launch (1.2s)
+- Floating pill-shaped bottom navigation
+- Minimal glassmorphism design language
+- Safe-area aware for iPhone notch / home bar
 
 ---
 
@@ -65,13 +87,15 @@ Starts **both** frontend and backend:
 
 ### Frontend
 - React 19 + Vite, React Router DOM v7
-- Lucide React, Framer Motion, Leaflet maps
+- Lucide React icons, Framer Motion animations
+- Leaflet maps (react-leaflet)
 - PWA via vite-plugin-pwa
 
 ### Backend
-- Node.js + Express, Prisma ORM, SQLite
+- Node.js + Express
+- Prisma ORM with SQLite (swap to PostgreSQL in schema)
 - JWT + bcrypt authentication
-- OpenAI API (icebreakers + semantic search)
+- OpenAI API (icebreakers + semantic search + activity suggestions)
 
 ---
 

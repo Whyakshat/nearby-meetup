@@ -138,7 +138,7 @@ const NewMeetupModal = ({ onClose }) => {
 };
 
 const MeetupCard = ({ meetup }) => {
-  const { registeredUsers, currentUser, joinMeetup, closeMeetup, cityName, requests, cancelRequest } = useAppContext();
+  const { registeredUsers, currentUser, joinMeetup, closeMeetup, cityName, requests, cancelRequest, respondToRequest } = useAppContext();
   const navigate = useNavigate();
   
   const author = registeredUsers.find(u => u.id === meetup.authorId) || { name: 'Unknown', avatar: '/default-avatar.svg' };
@@ -219,13 +219,50 @@ const MeetupCard = ({ meetup }) => {
       </p>
 
       {isMine ? (
-        <button 
-          onClick={() => closeMeetup(meetup.id)}
-          className="btn btn-secondary"
-          style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', fontSize: '0.9rem' }}
-        >
-          Sort & Close Request
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {/* Incoming join requests for the author */}
+          {(() => {
+            const joinReqs = requests.filter(r =>
+              r.toId === currentUser.id &&
+              r.status === 'pending' &&
+              r.activity === `Join Meetup: ${meetup.activity}`
+            );
+            if (joinReqs.length === 0) return null;
+            return (
+              <div style={{ background: 'var(--bg-color)', borderRadius: '12px', border: '1px solid var(--surface-border)', overflow: 'hidden' }}>
+                <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: '1px solid var(--surface-border)' }}>
+                  {joinReqs.length} Join Request{joinReqs.length > 1 ? 's' : ''}
+                </div>
+                {joinReqs.map(req => {
+                  const requester = req.from || registeredUsers.find(u => u.id === req.fromId) || { name: 'Unknown', avatar: '/default-avatar.svg' };
+                  return (
+                    <div key={req.id} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--surface-border)' }}>
+                      <img src={requester.avatar} alt={requester.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{requester.name}</span>
+                      <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+                        <button
+                          onClick={() => { respondToRequest(req.id, 'accepted'); setTimeout(() => navigate(`/chat/${req.id}`), 150); }}
+                          style={{ background: '#007AFF', color: 'white', border: 'none', padding: '0.3rem 0.6rem', borderRadius: '7px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                        >Accept</button>
+                        <button
+                          onClick={() => respondToRequest(req.id, 'declined')}
+                          style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--surface-border)', padding: '0.3rem 0.6rem', borderRadius: '7px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                        >Decline</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+          <button 
+            onClick={() => closeMeetup(meetup.id)}
+            className="btn btn-secondary"
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', fontSize: '0.9rem' }}
+          >
+            Sort & Close Request
+          </button>
+        </div>
       ) : meetupRequest ? (
         meetupRequest.status === 'pending' ? (
           <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>

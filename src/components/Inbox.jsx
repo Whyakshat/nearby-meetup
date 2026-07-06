@@ -17,6 +17,8 @@ const Inbox = () => {
 
   const unifiedMessages = requests
     .filter(r => r.to?.id === currentUser.id || r.from?.id === currentUser.id)
+    // Exclude meetup join requests — those are handled inside the Meetup section
+    .filter(r => !r.activity?.startsWith('Join Meetup:'))
     .map(req => {
       const isReceived = req.to?.id === currentUser.id;
       const otherUser = getFreshUser(isReceived ? req.from?.id : req.to?.id);
@@ -237,7 +239,11 @@ const Inbox = () => {
                   {msg.isReceived && msg.status === 'pending' && (
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.65rem' }} onClick={e => e.stopPropagation()}>
                       <button
-                        onClick={() => respondToRequest(msg.id, 'accepted')}
+                        onClick={() => {
+                          respondToRequest(msg.id, 'accepted');
+                          // Navigate to chat after accepting
+                          setTimeout(() => navigate(`/chat/${msg.id}`), 150);
+                        }}
                         style={{
                           flex: 1,
                           background: '#007AFF', // Apple Blue

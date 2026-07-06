@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../AppContext';
 import UserCard from './UserCard';
 import MeetupsFeed from './MeetupsFeed';
-import { Search, Map as MapIcon, List, Users, Compass, MapPin, Sparkles } from 'lucide-react';
+import { Search, Map as MapIcon, List, Users, Compass, MapPin, Sparkles, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -24,12 +24,13 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
 const INTEREST_OPTIONS = ['Coffee', 'Design', 'Music', 'Gaming', 'Food', 'Movies', 'Sports', 'Art'];
 
 const Dashboard = () => {
-  const { cityUsers, currentUser, location, posts, cityName, theme } = useAppContext();
+  const { cityUsers, currentUser, location, posts, cityName, theme, requests, respondToRequest } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
   const [feedMode, setFeedMode] = useState('people'); // 'people' or 'meetups'
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [selectedUserForPosts, setSelectedUserForPosts] = useState(null);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
   
   // AI Search states
   const [isAiSearch, setIsAiSearch] = useState(false);
@@ -175,6 +176,22 @@ const Dashboard = () => {
                   }}
                 >
                   <Sparkles size={11} /> {isAiSearch ? 'AI Active' : 'AI'}
+                </button>
+              </div>
+              {/* Notification Bell */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <button
+                  onClick={() => setShowNotifPanel(v => !v)}
+                  className="btn btn-glass"
+                  style={{ width: '48px', height: '48px', padding: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', color: showNotifPanel ? 'var(--accent-color)' : 'var(--text-secondary)' }}
+                >
+                  <Bell size={18} />
+                  {(() => {
+                    const pendingCount = requests.filter(r => r.to?.id === currentUser.id && r.status === 'pending' && !r.activity?.startsWith('Join Meetup:')).length;
+                    return pendingCount > 0 ? (
+                      <span style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', borderRadius: '50%', background: '#ff3b30', border: '1.5px solid var(--bg-color)' }} />
+                    ) : null;
+                  })()}
                 </button>
               </div>
               <button onClick={() => navigate('/profile')} className="btn btn-glass" style={{ width: '48px', height: '48px', padding: 0, borderRadius: '50%', flexShrink: 0 }}>
@@ -323,6 +340,55 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Notification Panel */}
+      {showNotifPanel && (() => {
+        const pendingReqs = requests.filter(r => r.to?.id === currentUser.id && r.status === 'pending' && !r.activity?.startsWith('Join Meetup:'));
+        return (
+          <div
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99998 }}
+            onClick={() => setShowNotifPanel(false)}
+          >
+            <div
+              style={{ position: 'absolute', top: 0, right: 0, left: 0, background: 'var(--bg-color)', borderBottom: '1px solid var(--surface-border)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', maxWidth: '480px', margin: '0 auto', paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ padding: '0 1rem 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Requests</h3>
+                <button onClick={() => setShowNotifPanel(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.82rem' }}>Done</button>
+              </div>
+              {pendingReqs.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>No pending requests</div>
+              ) : (
+                <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingBottom: '1rem' }}>
+                  {pendingReqs.map(req => {
+                    const fromUser = req.from || { name: 'Unknown', avatar: '/default-avatar.svg' };
+                    return (
+                      <div key={req.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderBottom: '1px solid var(--surface-border)' }}>
+                        <img src={fromUser.avatar} alt={fromUser.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fromUser.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{req.activity}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                          <button
+                            onClick={() => { respondToRequest(req.id, 'accepted'); setShowNotifPanel(false); setTimeout(() => navigate(`/chat/${req.id}`), 150); }}
+                            style={{ background: '#007AFF', color: 'white', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                          >Accept</button>
+                          <button
+                            onClick={() => respondToRequest(req.id, 'declined')}
+                            style={{ background: 'var(--surface-color)', color: 'var(--text-secondary)', border: '1px solid var(--surface-border)', padding: '0.4rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                          >Decline</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
