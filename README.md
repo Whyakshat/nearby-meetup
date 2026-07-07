@@ -107,6 +107,25 @@ npm run start
 
 ---
 
+## 🧪 Testing & CI/CD
+
+### Local Testing
+The backend API has comprehensive unit and integration tests written using **Vitest** and **Supertest**. The Prisma database client is fully mocked to allow fast, isolated test execution.
+
+To run the tests locally:
+```bash
+cd server
+npm run test
+```
+
+### CI/CD Workflow
+A GitHub Actions workflow is configured in `.github/workflows/ci.yml`. On every `push` and `pull_request` to the `main` branch, it automatically:
+1. Installs project dependencies.
+2. Runs the linter (`oxlint`).
+3. Executes the Vitest test suite.
+
+---
+
 ## 🌐 Live App
 
 Deployed on **Vercel** (frontend) + **Render** (backend).
