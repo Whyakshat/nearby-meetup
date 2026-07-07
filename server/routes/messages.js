@@ -16,7 +16,27 @@ router.get('/', auth, async (req, res) => {
       },
       orderBy: { timestamp: 'asc' }
     });
-    res.json(messages);
+
+    const now = new Date();
+    const processedMessages = messages.map(msg => {
+      if (msg.type === 'location_live' && msg.expiresAt && new Date(msg.expiresAt) < now) {
+        try {
+          const parsed = JSON.parse(msg.content);
+          return {
+            ...msg,
+            content: JSON.stringify({ ...parsed, lat: 0, lng: 0, expired: true })
+          };
+        } catch (e) {
+          return {
+            ...msg,
+            content: JSON.stringify({ lat: 0, lng: 0, expired: true })
+          };
+        }
+      }
+      return msg;
+    });
+
+    res.json(processedMessages);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

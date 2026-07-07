@@ -2,6 +2,20 @@ import express from 'express';
 import { prisma } from '../db.js';
 import auth from './auth.middleware.js';
 import bcrypt from 'bcryptjs';
+import { z } from 'zod';
+
+const profileUpdateSchema = z.object({
+  name: z.string().min(1, 'Name cannot be empty').max(50).optional(),
+  username: z.string().regex(/^[a-zA-Z0-9_]{3,20}$/, 'Invalid username format').optional(),
+  bio: z.string().max(200).optional(),
+  interests: z.array(z.string()).optional(),
+  avatar: z.string().optional(),
+  gender: z.string().nullable().optional(),
+  isPrivate: z.boolean().optional(),
+  blockedUsers: z.array(z.string()).optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+});
 
 const router = express.Router();
 
@@ -73,7 +87,15 @@ router.get('/check-username/:username', auth, async (req, res) => {
 // Update profile
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { name, username, bio, interests, avatar, gender, isPrivate, blockedUsers, latitude, longitude } = req.body;
+    const result = profileUpdateSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ 
+        message: result.error.errors[0]?.message || 'Invalid input data',
+        errors: result.error.errors 
+      });
+    }
+
+    const { name, username, bio, interests, avatar, gender, isPrivate, blockedUsers, latitude, longitude } = result.data;
     
     const data = {};
     if (name !== undefined) data.name = name;
@@ -88,10 +110,6 @@ router.put('/profile', auth, async (req, res) => {
     
     if (username !== undefined) {
       const normalizedUsername = username.toLowerCase().trim();
-      const isValid = /^[a-zA-Z0-9_]{3,20}$/.test(normalizedUsername);
-      if (!isValid) {
-        return res.status(400).json({ message: 'Invalid username format' });
-      }
       
       const existing = await prisma.user.findFirst({
         where: {

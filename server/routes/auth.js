@@ -4,9 +4,27 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../db.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 const resetTokens = new Map();
+
+// Strict rate limiters for OTP flows to prevent brute-force attacks
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  limit: 5, // Limit each IP to 5 OTP requests per 10 minutes
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { message: 'Too many OTP requests. Please try again after 10 minutes.' }
+});
+
+const otpVerifyLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  limit: 10, // Limit each IP to 10 verification attempts per 10 minutes
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { message: 'Too many OTP verification attempts. Please try again after 10 minutes.' }
+});
 
 async function generateUniqueUsername(email) {
   let baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
@@ -97,7 +115,7 @@ router.post('/login', async (req, res) => {
 const googleOtps = new Map();
 
 // Send Google OTP
-router.post('/google/send-otp', async (req, res) => {
+router.post('/google/send-otp', otpLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -129,7 +147,7 @@ router.post('/google/send-otp', async (req, res) => {
 });
 
 // Verify Google OTP
-router.post('/google/verify-otp', async (req, res) => {
+router.post('/google/verify-otp', otpVerifyLimiter, async (req, res) => {
   try {
     const { email, otp, name, avatar, password } = req.body;
     if (!email || !otp) {
