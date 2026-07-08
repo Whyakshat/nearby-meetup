@@ -242,10 +242,10 @@ router.post('/forgot-password', async (req, res) => {
     const origin = req.headers.origin || 'http://localhost:5173';
     const resetLink = `${origin}/reset-password?token=${token}`;
 
-    let emailSent = false;
-    let infoMsg = `A password reset link has been sent to ${email} (Simulated: check server console logs)`;
+    let infoMsg = '';
+    const hasSmtpConfig = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    if (hasSmtpConfig) {
       try {
         const transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST,
@@ -267,14 +267,13 @@ router.post('/forgot-password', async (req, res) => {
                  <p><a href="${resetLink}">${resetLink}</a></p>
                  <p>This link is valid for 15 minutes.</p>`,
         });
-        emailSent = true;
         infoMsg = `A password reset link has been sent to your email address ${email}.`;
       } catch (mailErr) {
         console.error('Failed to send real email via Nodemailer:', mailErr.message);
+        return res.status(500).json({ message: `Failed to send reset email: ${mailErr.message}` });
       }
-    }
-
-    if (!emailSent) {
+    } else {
+      infoMsg = `A password reset link has been sent to ${email} (Simulated: check server console logs)`;
       console.log(`\n==============================================`);
       console.log(`[Password Reset Link] URL: ${resetLink}`);
       console.log(`==============================================\n`);
