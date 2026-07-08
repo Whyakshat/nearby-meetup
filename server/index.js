@@ -15,15 +15,23 @@ dotenv.config();
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'http://localhost:5173',
-  'https://heyo-mbkm6hwzd-akshat24.vercel.app'
+  'https://heyo-mbkm6hwzd-akshat24.vercel.app',
+  'https://heyo-seven.vercel.app'
 ].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'test') {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      process.env.NODE_ENV === 'test'
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

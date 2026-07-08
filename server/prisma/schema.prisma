@@ -42,6 +42,8 @@ model Post {
   author     User     @relation(fields: [authorId], references: [id])
   isArchived Boolean  @default(false)
   timestamp  DateTime @default(now())
+
+  @@index([authorId])
 }
 
 model Meetup {
@@ -53,6 +55,8 @@ model Meetup {
   author             User     @relation(fields: [authorId], references: [id])
   status             String   @default("open")
   timestamp          DateTime @default(now())
+
+  @@index([authorId])
 }
 
 model Request {
@@ -64,6 +68,9 @@ model Request {
   activity String
   status   String   @default("pending") // pending, accepted, declined
   createdAt DateTime @default(now())
+
+  @@index([fromId])
+  @@index([toId])
 }
 
 model Message {
@@ -77,4 +84,8 @@ model Message {
   type       String   @default("text")
   expiresAt  DateTime?
   timestamp  DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([requestId])
 }

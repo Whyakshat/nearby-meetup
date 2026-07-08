@@ -31,6 +31,8 @@ export const AppProvider = ({ children }) => {
   });
 
   const watchIdRef = useRef(null);
+  const lastUpdateRef = useRef(0);
+  const updateTimerRef = useRef(null);
   
   const [location, setLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
@@ -122,36 +124,62 @@ export const AppProvider = ({ children }) => {
           if (prev) {
             const latDiff = Math.abs(prev.lat - lat);
             const lngDiff = Math.abs(prev.lng - lng);
-            // 0.0001 degree is approximately 11 meters.
-            if (latDiff < 0.0001 && lngDiff < 0.0001) {
+            // 0.00015 degree is approximately 16 meters.
+            if (latDiff < 0.00015 && lngDiff < 0.00015) {
               return prev;
             }
           }
-          
-          // Trigger side-effects asynchronously outside the React state updater
-          Promise.resolve().then(() => {
-            setLocationError(null);
-            reverseGeocode(lat, lng);
-
-            if (token) {
-              fetch(`${API_URL}/users/profile`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ latitude: lat, longitude: lng })
-              }).catch(e => console.warn('Failed to update live coordinates on server', e));
-            }
-          });
-
           return { lat, lng };
         });
       },
       () => setLocationError("Location access denied"),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 }
     );
-  }, [reverseGeocode, token]);
+  }, []);
+
+  // Handle throttled/debounced location updates to server & geocoder
+  useEffect(() => {
+    if (!location) return;
+
+    const performUpdate = () => {
+      lastUpdateRef.current = Date.now();
+      reverseGeocode(location.lat, location.lng);
+
+      if (token) {
+        fetch(`${API_URL}/users/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ latitude: location.lat, longitude: location.lng })
+        }).catch(e => console.warn('Failed to update live coordinates on server', e));
+      }
+    };
+
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateRef.current;
+
+    // Clear any pending debounced updates
+    if (updateTimerRef.current) {
+      clearTimeout(updateTimerRef.current);
+      updateTimerRef.current = null;
+    }
+
+    if (timeSinceLastUpdate >= 15000) {
+      performUpdate();
+    } else {
+      // Schedule a debounced update at the end of the throttle window
+      const delay = 15000 - timeSinceLastUpdate;
+      updateTimerRef.current = setTimeout(performUpdate, delay);
+    }
+
+    return () => {
+      if (updateTimerRef.current) {
+        clearTimeout(updateTimerRef.current);
+      }
+    };
+  }, [location, token, reverseGeocode]);
 
   // Fetch Location on load
   useEffect(() => {
