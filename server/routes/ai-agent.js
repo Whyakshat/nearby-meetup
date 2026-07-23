@@ -78,7 +78,7 @@ const AGENT_TOOLS = {
     name: 'generate_icebreaker',
     description: 'Create personalized conversation starters',
     execute: async (params) => {
-      const { userName, userInterests, targetName, targetInterests } = params;
+      const { userInterests, targetName, targetInterests } = params;
       const shared = (userInterests || []).filter(i =>
         (targetInterests || []).map(t => t.toLowerCase()).includes(i.toLowerCase())
       );
@@ -285,7 +285,7 @@ function generateDynamicResponse(message, user, userInterests, toolResults, inte
 }
 
 // ─── Agentic Pipeline: Think → Plan → Execute → Respond ──────────────
-async function runAgentPipeline(message, user, allUsers) {
+async function runAgentPipeline(message, user) {
   const startTime = Date.now();
   const agentLog = [];
 

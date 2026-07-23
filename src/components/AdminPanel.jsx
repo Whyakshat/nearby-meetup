@@ -94,25 +94,6 @@ const MiniChart = ({ data, width = 280, height = 80, color = '#667eea' }) => {
   return <canvas ref={canvasRef} style={{ width, height, display: 'block' }} />;
 };
 
-// Interest bar chart
-const InterestBar = ({ name, count, maxCount, color }) => {
-  const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.4rem 0' }}>
-      <span style={{ fontSize: '0.85rem', fontWeight: 500, minWidth: '70px' }}>{name}</span>
-      <div style={{ flex: 1, height: '8px', borderRadius: '4px', background: 'var(--surface-border)', overflow: 'hidden' }}>
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          style={{ height: '100%', borderRadius: '4px', background: color }}
-        />
-      </div>
-      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', minWidth: '30px', textAlign: 'right' }}>{count}</span>
-    </div>
-  );
-};
-
 const AdminPanel = ({ onClose }) => {
   const { currentUser } = useAppContext();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -120,7 +101,6 @@ const AdminPanel = ({ onClose }) => {
   const [usersData, setUsersData] = useState(null);
   const [reportsData, setReportsData] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
-  const [interestsData, setInterestsData] = useState(null);
   const [contentData, setContentData] = useState(null);
   const [auditData, setAuditData] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -241,8 +221,6 @@ const AdminPanel = ({ onClose }) => {
       </div>
     );
   }
-
-  const CHART_COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', '#43e97b', '#fa709a', '#fee140'];
 
   return (
     <motion.div

@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
 import { 
   Settings as SettingsIcon, 
-  Edit2, 
   Camera, 
   Trash2, 
   Archive, 
@@ -13,7 +12,6 @@ import {
   UserPlus, 
   UserCheck, 
   Clock, 
-  LogOut,
   X,
   Sparkles,
   Lock
@@ -37,8 +35,7 @@ const Profile = () => {
     posts, 
     deletePost, 
     archivePost, 
-    unarchivePost,
-    logout, 
+    unarchivePost, 
     requests, 
     meetups, 
     sendRequest, 
@@ -70,7 +67,6 @@ const Profile = () => {
 
   const [vibeScore, setVibeScore] = useState(null);
   const [vibeInsight, setVibeInsight] = useState('');
-  const [loadingVibe, setLoadingVibe] = useState(false);
   const [suggestingBio, setSuggestingBio] = useState(false);
 
   const fileInputRef = useRef(null);
