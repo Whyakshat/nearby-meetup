@@ -10,6 +10,9 @@ import meetupsRoutes from './routes/meetups.js';
 import requestsRoutes from './routes/requests.js';
 import messagesRoutes from './routes/messages.js';
 import aiRoutes from './routes/ai.js';
+import aiAgentRoutes from './routes/ai-agent.js';
+import analyticsRoutes from './routes/analytics.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -58,6 +61,9 @@ app.use('/api/meetups', meetupsRoutes);
 app.use('/api/requests', requestsRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/ai/agent', aiAgentRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/admin', adminRoutes);
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 5001;

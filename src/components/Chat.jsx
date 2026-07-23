@@ -243,38 +243,7 @@ const Chat = () => {
           </div>
         ) : (
           <>
-            {showIce && icebreakers.length > 0 && chatMessages.length === 0 && (
-              <div style={{ padding: '0.5rem 0 1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>💡 Conversation Starters</span>
-                  <button onClick={() => setShowIce(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.7rem', cursor: 'pointer', padding: 0 }}>Dismiss</button>
-                </div>
-                <div className="hide-scrollbar" style={{ display: 'flex', gap: '0.45rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
-                  {icebreakers.map((b, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setInputText(b); inputRef.current?.focus(); }}
-                      style={{
-                        background: 'var(--surface-color)',
-                        border: '1px solid var(--surface-border)',
-                        color: 'var(--text-primary)',
-                        padding: '0.45rem 0.85rem',
-                        borderRadius: '999px',
-                        fontSize: '0.78rem',
-                        whiteSpace: 'nowrap',
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      {b}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {chatMessages.length === 0 && (!showIce || icebreakers.length === 0) && (
+            {chatMessages.length === 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <img
                   src={otherUser.avatar}

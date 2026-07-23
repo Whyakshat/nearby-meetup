@@ -175,7 +175,7 @@ const Signup = () => {
       {/* Google Modal */}
       <AnimatePresence>
         {showGoogleModal && (
-          <GoogleAuthModal onClose={() => setShowGoogleModal(false)} onAuthSuccess={handleAuthSuccess} />
+          <GoogleAuthModal mode="signup" onClose={() => setShowGoogleModal(false)} onAuthSuccess={handleAuthSuccess} />
         )}
       </AnimatePresence>
     </div>

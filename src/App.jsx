@@ -15,6 +15,7 @@ import { RequireLocation } from './components/RequireLocation';
 import SplashScreen from './components/SplashScreen';
 import CreatePostModal from './components/CreatePostModal';
 import ResetPassword from './components/ResetPassword';
+import AiAssistant from './components/AiAssistant';
 import { AnimatePresence } from 'framer-motion';
 
 
@@ -154,6 +155,7 @@ const AppContent = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <BottomNav />
+      <AiAssistant />
     </div>
   );
 };

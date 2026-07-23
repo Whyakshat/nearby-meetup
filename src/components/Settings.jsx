@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
-import { LogOut, Lock, Unlock, Moon, Sun, HelpCircle, ShieldAlert, ArrowLeft, Archive, UserPlus, UserX, AlertTriangle, Trash2 } from 'lucide-react';
+import { LogOut, Lock, Unlock, Moon, Sun, HelpCircle, ShieldAlert, ArrowLeft, Archive, UserPlus, UserX, AlertTriangle, Trash2, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AdminPanel from './AdminPanel';
 
 const Settings = ({ onClose }) => {
   const { 
@@ -38,6 +39,7 @@ const Settings = ({ onClose }) => {
   const [deleteConfirmValue, setDeleteConfirmValue] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   if (!currentUser) return null;
 
@@ -344,7 +346,20 @@ const Settings = ({ onClose }) => {
 
           {/* Support */}
           <SectionTitle>Support</SectionTitle>
-          <div className="glass-panel" style={{ padding: '1rem', marginBottom: '2.5rem' }}>
+          <div className="glass-panel" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2.5rem' }}>
+            {currentUser?.email && ['testuser@heyo.com', 'akshatojha820@gmail.com'].includes(currentUser.email.toLowerCase()) && (
+              <>
+                <button 
+                  onClick={() => setShowAdminPanel(true)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontWeight: 500, fontSize: '1rem', padding: 0 }}
+                >
+                  <LayoutDashboard size={20} color="var(--accent-color)" />
+                  <span style={{ fontWeight: 600 }}>Admin Panel</span>
+                  <span style={{ marginLeft: 'auto', background: 'rgba(0,122,255,0.15)', color: '#007aff', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '999px', fontWeight: 700 }}>ADMIN</span>
+                </button>
+                <div style={{ height: '1px', background: 'var(--surface-border)' }} />
+              </>
+            )}
             <button style={{ background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontWeight: 500, fontSize: '1rem', padding: 0 }}>
               <HelpCircle size={20} color="var(--text-secondary)" />
               Help Center
@@ -497,6 +512,11 @@ const Settings = ({ onClose }) => {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
+
+      {/* Admin Panel */}
+      <AnimatePresence>
+        {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
       </AnimatePresence>
 
     </motion.div>

@@ -5,9 +5,12 @@ import { prisma } from '../db.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import rateLimit from 'express-rate-limit';
+import { OAuth2Client } from 'google-auth-library';
 
 const router = express.Router();
 const resetTokens = new Map();
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // Strict rate limiters for OTP flows to prevent brute-force attacks
 const otpLimiter = rateLimit({
@@ -217,6 +220,109 @@ router.post('/google/verify-otp', otpVerifyLimiter, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
+  }
+});
+
+// ─── REAL Google Sign-In: Verify Google ID Token ──────────────────────
+router.post('/google/verify-token', async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ message: 'Google credential is required' });
+    }
+
+    if (!GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ message: 'Google Client ID not configured on server. Add GOOGLE_CLIENT_ID to server/.env' });
+    }
+
+    // Verify the ID token with Google
+    let ticket;
+    try {
+      ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: GOOGLE_CLIENT_ID,
+      });
+    } catch (verifyErr) {
+      console.error('Google token verification failed:', verifyErr.message);
+      return res.status(401).json({ message: 'Invalid Google token. Please try again.' });
+    }
+
+    const payload = ticket.getPayload();
+    const googleEmail = payload.email.toLowerCase().trim();
+    const googleName = payload.name || googleEmail.split('@')[0];
+    const googleAvatar = payload.picture || '/default-avatar.svg';
+    const emailVerified = payload.email_verified;
+
+    if (!emailVerified) {
+      return res.status(400).json({ message: 'Google email is not verified.' });
+    }
+
+    // Check if user already exists
+    let user = await prisma.user.findUnique({ where: { email: googleEmail } });
+
+    if (user) {
+      // Existing user — log them in
+      if (user.isDisabled) {
+        return res.status(400).json({ message: 'Account is disabled. Please contact support.' });
+      }
+
+      // Mark as Google-authenticated if not already
+      if (!user.isGoogleAuth) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { isGoogleAuth: true }
+        });
+      }
+
+      // Update avatar from Google if user still has default
+      if (user.avatar === '/default-avatar.svg' && googleAvatar !== '/default-avatar.svg') {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { avatar: googleAvatar }
+        });
+      }
+    } else {
+      // New user — create account
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(crypto.randomBytes(20).toString('hex'), salt);
+      const uniqueUsername = await generateUniqueUsername(googleEmail);
+
+      user = await prisma.user.create({
+        data: {
+          email: googleEmail,
+          password: hashedPassword,
+          name: googleName,
+          username: uniqueUsername,
+          bio: '',
+          interests: JSON.stringify([]),
+          avatar: googleAvatar,
+          gender: 'Prefer not to say',
+          blockedUsers: JSON.stringify([]),
+          isGoogleAuth: true
+        }
+      });
+    }
+
+    // Generate JWT
+    const jwtPayload = { user: { id: user.id } };
+    const token = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+    user.interests = JSON.parse(user.interests);
+    user.blockedUsers = JSON.parse(user.blockedUsers);
+
+    console.log(`[Google Auth] User signed in: ${googleEmail} (${user.id})`);
+
+    res.json({
+      token,
+      user: {
+        id: user.id, email: user.email, name: user.name, username: user.username,
+        bio: user.bio, interests: user.interests, avatar: user.avatar,
+        gender: user.gender, isPrivate: user.isPrivate, blockedUsers: user.blockedUsers
+      }
+    });
+  } catch (err) {
+    console.error('Google verify-token error:', err.message);
+    res.status(500).json({ message: 'Server error during Google authentication' });
   }
 });
 

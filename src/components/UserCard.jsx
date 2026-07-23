@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
 import { Send, MoreHorizontal, ShieldAlert, Lock, CheckCircle2, Eye, X } from 'lucide-react';
 
 const UserCard = ({ user, onOpenPosts }) => {
+  const navigate = useNavigate();
   const { sendRequest, blockUser, cancelRequest, requests, currentUser, posts } = useAppContext();
   const [customMsg, setCustomMsg] = useState('');
   const [showOptions, setShowOptions] = useState(false);
@@ -40,8 +42,8 @@ const UserCard = ({ user, onOpenPosts }) => {
   return (
     <div 
       className="full-card" 
-      onClick={() => !isLocked && onOpenPosts(user)} 
-      style={{ cursor: isLocked ? 'default' : 'pointer', border: '1px solid rgba(255,255,255,0.1)' }}
+      onClick={() => navigate(`/profile/${user.id}`)} 
+      style={{ cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)' }}
     >
       {/* Background Image */}
       <img 

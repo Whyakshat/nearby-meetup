@@ -146,37 +146,12 @@ const Dashboard = () => {
                 <Search size={16} style={{ position: 'absolute', left: '1rem', color: 'var(--text-secondary)' }} />
                 <input 
                   type="text" 
-                  placeholder={isAiSearch ? "Ask AI (e.g. coffee design, coding...)" : "Search people..."} 
+                  placeholder="Search people..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="input-field"
-                  style={{ paddingLeft: '2.75rem', paddingRight: '5.2rem', width: '100%' }}
+                  style={{ paddingLeft: '2.75rem', paddingRight: '1rem', width: '100%' }}
                 />
-                <button 
-                  onClick={() => {
-                    setIsAiSearch(!isAiSearch);
-                    setSearchQuery('');
-                  }}
-                  type="button"
-                  style={{ 
-                    position: 'absolute', 
-                    right: '0.4rem', 
-                    background: isAiSearch ? 'var(--primary-color)' : 'rgba(120, 120, 120, 0.15)',
-                    color: isAiSearch ? 'var(--bg-color)' : 'var(--text-secondary)',
-                    border: 'none', 
-                    borderRadius: '8px', 
-                    padding: '0.35rem 0.55rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <Sparkles size={11} /> {isAiSearch ? 'AI Active' : 'AI'}
-                </button>
               </div>
               {/* Notification Bell */}
               <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -290,56 +265,13 @@ const Dashboard = () => {
             ) : (
               filteredUsers.map((user) => (
                 <div key={user.id} style={{ marginBottom: '1rem' }}>
-                  <UserCard user={user} onOpenPosts={setSelectedUserForPosts} />
+                  <UserCard user={user} onOpenPosts={(u) => navigate(`/profile/${u.id}`)} />
                 </div>
               ))
             )}
           </AnimatePresence>
         )}
       </div>
-
-      {/* User Posts Modal */}
-      {selectedUserForPosts && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--sticky-bg)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', zIndex: 99999, overflowY: 'auto', padding: '1rem', paddingBottom: '120px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', padding: '1rem', background: 'var(--surface-color)', borderRadius: '24px', border: '1px solid var(--surface-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <img src={selectedUserForPosts.avatar} alt={selectedUserForPosts.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-              <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{selectedUserForPosts.name}'s Posts</h2>
-            </div>
-            <button 
-              onClick={() => setSelectedUserForPosts(null)} 
-              className="btn btn-glass" 
-              style={{ color: 'var(--text-primary)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-            >
-              Close
-            </button>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {selectedUserPosts.length > 0 ? (
-              selectedUserPosts.map(post => (
-                <div key={post.id} className="glass-panel" style={{ padding: '1rem' }}>
-                  {post.text && <p style={{ margin: '0 0 0.75rem 0', fontSize: '1rem' }}>{post.text}</p>}
-                  {post.image && (
-                    <img 
-                      src={post.image} 
-                      alt="Post" 
-                      style={{ width: '100%', borderRadius: '16px', maxHeight: post.imageRatio === 'auto' || !post.imageRatio ? '400px' : 'none', aspectRatio: post.imageRatio || 'auto', objectFit: post.imageRatio === 'auto' || !post.imageRatio ? 'contain' : 'cover' }} 
-                    />
-                  )}
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                    {new Date(post.timestamp).toLocaleString()}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '3rem' }}>
-                <p>No posts yet.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Notification Panel */}
       {showNotifPanel && (() => {

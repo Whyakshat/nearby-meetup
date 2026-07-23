@@ -145,7 +145,7 @@ const Login = () => {
       {/* Modals */}
       <AnimatePresence>
         {showGoogleModal && (
-          <GoogleAuthModal onClose={() => setShowGoogleModal(false)} onAuthSuccess={handleAuthSuccess} />
+          <GoogleAuthModal mode="signin" onClose={() => setShowGoogleModal(false)} onAuthSuccess={handleAuthSuccess} />
         )}
         {showForgotModal && (
           <ForgotPasswordModal onClose={() => setShowForgotModal(false)} />

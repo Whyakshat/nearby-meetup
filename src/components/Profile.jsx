@@ -51,6 +51,10 @@ const Profile = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('Spam / Harassment');
+  const [reportDetails, setReportDetails] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('posts'); // 'posts' or 'archived'
   const [selectedPost, setSelectedPost] = useState(null); // For post detail modal
   const [showStatModal, setShowStatModal] = useState(null); // null | 'connections' | 'meetups'
@@ -279,12 +283,24 @@ const Profile = () => {
                 {profileUser.username ? `@${profileUser.username}` : (profileUser.email ? profileUser.email.split('@')[0] : 'profile')}
               </span>
             </div>
-            {!isPublicView && (
+            {!isPublicView ? (
               <button 
                 onClick={() => setShowSettings(true)}
                 style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.5rem' }}
               >
                 <SettingsIcon size={22} />
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowReportModal(true)}
+                title="Report User Account"
+                style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', color: 'var(--danger-color)', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <Sparkles size={16} style={{ display: 'none' }} />
+                <SettingsIcon size={16} style={{ display: 'none' }} />
+                <Lock size={16} style={{ display: 'none' }} />
+                <ArrowLeft size={16} style={{ display: 'none' }} />
+                <span style={{ fontSize: '0.85rem' }}>🚩</span>
               </button>
             )}
           </div>
@@ -1113,6 +1129,101 @@ const Profile = () => {
             </motion.div>
           );
         })()}
+      </AnimatePresence>
+
+      {/* Report User Modal Sheet */}
+      <AnimatePresence>
+        {showReportModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+            onClick={() => setShowReportModal(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              style={{ width: '100%', maxWidth: '480px', background: 'var(--bg-color)', borderRadius: '24px 24px 0 0', borderTop: '1px solid var(--surface-border)', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ width: '36px', height: '4px', borderRadius: '999px', background: 'var(--surface-border)' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--danger-color)' }}>
+                  Report Account
+                </h3>
+                <button onClick={() => setShowReportModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
+                Why are you reporting <strong>{profileUser?.name}</strong>? Reports are sent directly to Heyo Security Admins.
+              </p>
+
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.4rem' }}>Reason</label>
+                <select
+                  value={reportReason}
+                  onChange={e => setReportReason(e.target.value)}
+                  style={{ width: '100%', background: 'var(--surface-color)', border: '1px solid var(--surface-border)', color: 'var(--text-primary)', padding: '0.65rem 0.85rem', borderRadius: '12px', fontSize: '0.88rem', outline: 'none' }}
+                >
+                  <option value="Spam / Harassment">Spam / Automated Harassment</option>
+                  <option value="Impersonation / Fake Profile">Impersonation / Fake Profile</option>
+                  <option value="Inappropriate Content">Inappropriate Content / Photos</option>
+                  <option value="Scam / Fraud">Scam or Financial Fraud</option>
+                  <option value="Hate Speech">Hate Speech / Abuse</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.4rem' }}>Additional Details (Optional)</label>
+                <textarea
+                  value={reportDetails}
+                  onChange={e => setReportDetails(e.target.value)}
+                  placeholder="Describe what happened..."
+                  rows={3}
+                  style={{ width: '100%', background: 'var(--surface-color)', border: '1px solid var(--surface-border)', color: 'var(--text-primary)', padding: '0.65rem 0.85rem', borderRadius: '12px', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', resize: 'none' }}
+                />
+              </div>
+
+              <button
+                disabled={reportSubmitting}
+                onClick={async () => {
+                  setReportSubmitting(true);
+                  try {
+                    await fetch(`${API_URL}/admin/report`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('vibecheck_token')}`
+                      },
+                      body: JSON.stringify({
+                        targetUserId: profileUser.id,
+                        reason: reportReason,
+                        details: reportDetails
+                      })
+                    });
+                    addNotification('Report submitted successfully to Heyo Security.', 'success');
+                    setShowReportModal(false);
+                    setReportDetails('');
+                  } catch (err) {
+                    addNotification('Failed to submit report.', 'error');
+                  } finally {
+                    setReportSubmitting(false);
+                  }
+                }}
+                style={{ background: 'var(--danger-color)', color: 'white', border: 'none', borderRadius: '12px', padding: '0.75rem', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', opacity: reportSubmitting ? 0.7 : 1 }}
+              >
+                {reportSubmitting ? 'Submitting...' : 'Submit Report'}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

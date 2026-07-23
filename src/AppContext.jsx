@@ -326,6 +326,29 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Real Google Sign-In: send credential (ID token) from Google GIS
+  const googleLoginWithToken = async (credential) => {
+    try {
+      const res = await fetch(`${API_URL}/auth/google/verify-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToken(data.token);
+        setCurrentUser(data.user);
+        localStorage.setItem('vibecheck_token', data.token);
+        localStorage.setItem('vibecheck_user', JSON.stringify(data.user));
+        updateSessionsList({ token: data.token, user: data.user });
+        return { success: true };
+      }
+      return { success: false, message: data.message };
+    } catch (error) {
+      return { success: false, message: 'Server error. Please try again.' };
+    }
+  };
+
   const forgotPassword = async (email) => {
     try {
       const res = await fetch(`${API_URL}/auth/forgot-password`, {
@@ -679,6 +702,7 @@ export const AppProvider = ({ children }) => {
       login,
       sendGoogleOtp,
       googleLogin,
+      googleLoginWithToken,
       forgotPassword,
       resetPassword,
       logout,
